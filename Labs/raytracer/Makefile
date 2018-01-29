@@ -17,7 +17,7 @@ CC=g++
 ########
 #       SDL options
 SDL_CFLAGS := $(shell sdl2-config --cflags)
-GLM_CFLAGS := -I$(GLMDIR)
+GLM_CFLAGS := -I../glm/
 SDL_LDFLAGS := $(shell sdl2-config --libs)
 
 ########
@@ -40,7 +40,7 @@ $(B_DIR)/$(FILE).o : $(S_DIR)/$(FILE).cpp $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestM
 ########
 #   Main build rule     
 Build : $(OBJ) Makefile
-	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
+	mkdir $(B_DIR) -p && $(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
 
 
 clean:
