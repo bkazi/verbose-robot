@@ -32,7 +32,7 @@ struct Intersection {
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update();
+void Update(Camera &camera);
 void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
 
@@ -45,11 +45,11 @@ int main(int argc, char *argv[]) {
 
   Camera camera = {
     SCREEN_HEIGHT,
-    vec4(0, 0, -3, 1)
+    vec4(0, 0, -3, 1),
   };
 
   while (NoQuitMessageSDL()) {
-    Update();
+    Update(camera);
     Draw(screen, camera, scene);
     SDL_Renderframe(screen);
   }
@@ -78,7 +78,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
 }
 
 /*Place updates of parameters here*/
-void Update() {
+void Update(Camera &camera) {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -86,6 +86,33 @@ void Update() {
   t = t2;
   cout << "Render time: " << dt << " ms.\n";
   /* Update variables*/
+  const float speed = 0.001;
+
+  const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+  if (keystate[SDL_SCANCODE_W]) {
+    cout << "w in press\n";
+    camera.position.z += speed * dt;
+  }
+
+  if (keystate[SDL_SCANCODE_S]) {
+    camera.position.z -= speed * dt;
+  }
+
+  if (keystate[SDL_SCANCODE_A]) {
+    camera.position.x -= speed * dt;
+  }
+
+  if (keystate[SDL_SCANCODE_D]) {
+    camera.position.x += speed * dt;
+  }
+
+  if (keystate[SDL_SCANCODE_Q]) {
+    camera.position.y += speed * dt;
+  }
+
+  if (keystate[SDL_SCANCODE_E]) {
+    camera.position.y -= speed * dt;
+  }
 }
 
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection) {
