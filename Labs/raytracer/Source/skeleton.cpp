@@ -18,6 +18,7 @@ using glm::vec4;
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 
+float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
 vec3 lightColor = 14.f * vec3(1, 1, 1); 
 
@@ -81,10 +82,10 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 
+  Intersection intersection;
   for (int y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
-      Intersection intersection;
       if (ClosestIntersection(camera.position, direction, scene, intersection)) {
         vec3 color = DirectLight(intersection, scene) * scene[intersection.triangleIndex].color;
         PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
@@ -154,47 +155,42 @@ void Update(Camera &camera) {
     }
   }
 
-  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, 1-(pow(camera.rotation.x,2))/2, camera.rotation.x), vec3(0, -camera.rotation.x, 1-(pow(camera.rotation.x,2))/2));
-  mat3 Ry = mat3(vec3(1-(pow(camera.rotation.y,2))/2, 0, -camera.rotation.y), vec3(0, 1, 0), vec3(camera.rotation.y, 0, 1-(pow(camera.rotation.y,2))/2));
-  mat3 Rz = mat3(vec3(1-(pow(camera.rotation.z,2))/2, camera.rotation.z, 0), vec3(-camera.rotation.z, 1-(pow(camera.rotation.z,2))/2, 0), vec3(0, 0, 1));
+  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cos(camera.rotation.x), sin(camera.rotation.x)), vec3(0, -sin(camera.rotation.x), cos(camera.rotation.x)));
+  mat3 Ry = mat3(vec3(cos(camera.rotation.y), 0, -sin(camera.rotation.y)), vec3(0, 1, 0), vec3(sin(camera.rotation.y), 0, cos(camera.rotation.y)));
+  mat3 Rz = mat3(vec3(cos(camera.rotation.z), sin(camera.rotation.z), 0), vec3(-sin(camera.rotation.z), cos(camera.rotation.z), 0), vec3(0, 0, 1));
   camera.R = Rx * Ry * Rz;
-  camera.position.x += (camera.movement * camera.R).x;
-  camera.position.y += (camera.movement * camera.R).y;
-  camera.position.z += (camera.movement * camera.R).z;
+  camera.position += vec4(vec3(camera.movement * camera.R), 0);
 }
 
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection) {
-  vec3 best = vec3(numeric_limits<float>::max(), 0, 0);
-  int triangleIndex = -1;
-  vec3 position;
+  closestIntersection.distance = m;
+  closestIntersection.triangleIndex = -1;
 
   for (uint index = 0; index < triangles.size(); index++) {
     Triangle triangle = triangles[index];
     vec4 v0 = triangle.v0;
     vec4 v1 = triangle.v1;
     vec4 v2 = triangle.v2;
-    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
-    vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
-    vec3 b = vec3(start.x - v0.x, start.y - v0.y, start.z - v0.z);
-    vec3 d = vec3(dir.x, dir.y, dir.z);
-    mat3 A(-d, e1, e2);
-    vec3 x = glm::inverse(A) * b;
+    vec3 e1 = vec3(v1) - vec3(v0);
+    vec3 e2 = vec3(v2) - vec3(v0);
+    vec3 b = vec3(start) - vec3(v0);
+    mat3 A(-vec3(dir), e1, e2);
+    float detA = glm::determinant(A);
+    float dist = glm::determinant(mat3(b, e1, e2)) / detA;
     
     // Calculate point of intersection
-    if (x.y >= 0 && x.z >= 0 && x.y + x.z <= 1) {
-      if (x.x >= 0 && x.x < best.x) {
-        best = x;
-        triangleIndex = index;
-        position = vec3(v0.x, v0.y, v0.z) + (x.y * e1) + (x.z * e2);
+    if (dist >= 0 && dist < closestIntersection.distance) {
+      float u = glm::determinant(mat3(-vec3(dir), b, e2)) / detA;
+      float v = glm::determinant(mat3(-vec3(dir), e1, b)) / detA;
+      if (u >= 0 && v >= 0 && u + v <= 1) {
+        closestIntersection.distance = dist;
+        closestIntersection.triangleIndex = index;
+        closestIntersection.position = vec4(vec3(v0) + (mat3(vec3(0), e1, e2) * vec3(0, u, v)), 1);
       }
     }
   }
 
-  closestIntersection.distance = best.x;
-  closestIntersection.triangleIndex = triangleIndex;
-  closestIntersection.position = vec4(position, 1);
-
-  return triangleIndex != -1;
+  return closestIntersection.triangleIndex != -1;
 }
 
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
