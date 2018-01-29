@@ -21,7 +21,7 @@ using glm::vec4;
 struct Camera {
   float focalLength;
   vec4 position;
-  mat4 rotation;
+  vec4 rotation;
   float movementSpeed;
   float rotationSpeed;
 };
