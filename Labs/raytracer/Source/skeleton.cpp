@@ -1,11 +1,12 @@
 #include <iostream>
+#include <stdint.h>
+#include <limits.h>
+#include <math.h>
+#include <algorithm>
 #include <glm/glm.hpp>
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
-#include <stdint.h>
-#include <limits.h>
-#include <math.h>
 
 using namespace std;
 using glm::mat3;
@@ -16,6 +17,9 @@ using glm::vec4;
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
+
+vec4 lightPos(0, -0.5, -0.7, 1.0);
+vec3 lightColor = 14.f * vec3(1, 1, 1); 
 
 /* ----------------------------------------------------------------------------*/
 /* STRUCTS                                                                     */
@@ -41,6 +45,7 @@ struct Intersection {
 void Update(Camera &camera);
 void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
+vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
 
 int main(int argc, char *argv[]) {
 
@@ -81,7 +86,8 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
       vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
       Intersection intersection;
       if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-        PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, scene[intersection.triangleIndex].color);
+        vec3 color = DirectLight(intersection, scene) * scene[intersection.triangleIndex].color;
+        PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
       }
     }
   }
@@ -167,7 +173,7 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
     vec4 v0 = triangle.v0;
     vec4 v1 = triangle.v1;
     vec4 v2 = triangle.v2;
-    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z); //v1 - v0;
+    vec3 e1 = vec3(v1.x - v0.x, v1.y - v0.y, v1.z - v0.z);
     vec3 e2 = vec3(v2.x - v0.x, v2.y - v0.y, v2.z - v0.z);
     vec3 b = vec3(start.x - v0.x, start.y - v0.y, start.z - v0.z);
     vec3 d = vec3(dir.x, dir.y, dir.z);
@@ -189,4 +195,11 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
   closestIntersection.position = vec4(position, 1);
 
   return triangleIndex != -1;
+}
+
+vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
+  vec3 P = lightColor;
+  vec4 n = scene[intersection.triangleIndex].normal;
+  vec4 r = glm::normalize(lightPos - intersection.position);
+  return (P * max(glm::dot(r, n), 0.0f)) / (float) (4 * M_PI * intersection.distance);
 }
