@@ -17,6 +17,7 @@ using glm::vec4;
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
+#define NUM_RAYS 2
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
@@ -86,11 +87,18 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
   Intersection intersection;
   for (int y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
-      vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
-      if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-        vec3 color = (DirectLight(intersection, scene) + indirectLighting) * scene[intersection.triangleIndex].color;
-        PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
+      vec3 color = vec3(0);
+      for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
+        for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
+          float ep = (float) 1 / NUM_RAYS;
+          vec4 direction = glm::normalize(vec4(vec3((float) x + ep*j, (float) y + ep*i, camera.focalLength) * camera.R, 1));
+          if (ClosestIntersection(camera.position, direction, scene, intersection)) {
+            color += (DirectLight(intersection, scene) + indirectLighting) * scene[intersection.triangleIndex].color;
+          }
+        }
       }
+      color /= NUM_RAYS * NUM_RAYS;
+      PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
     }
   }
 }
