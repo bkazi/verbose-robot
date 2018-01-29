@@ -6,11 +6,10 @@
 #include <stdint.h>
 
 using namespace std;
-using glm::vec3;
 using glm::mat3;
-using glm::vec4;
 using glm::mat4;
-
+using glm::vec3;
+using glm::vec4;
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
@@ -20,50 +19,43 @@ using glm::mat4;
 /* FUNCTIONS                                                                   */
 
 void Update();
-void Draw(screen* screen);
+void Draw(screen *screen);
 
-int main( int argc, char* argv[] )
-{
-  
-  screen *screen = InitializeSDL( SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE );
-  
-  while( NoQuitMessageSDL() )
-    {
-      Update();
-      Draw(screen);
-      SDL_Renderframe(screen);
-    }
+int main(int argc, char *argv[]) {
 
-  SDL_SaveImage( screen, "screenshot.bmp" );
+  screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
+
+  while (NoQuitMessageSDL()) {
+    Update();
+    Draw(screen);
+    SDL_Renderframe(screen);
+  }
+
+  SDL_SaveImage(screen, "screenshot.bmp");
 
   KillSDL(screen);
   return 0;
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen)
-{
+void Draw(screen *screen) {
   /* Clear buffer */
-  memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  
-  vec3 colour(1.0,0.0,0.0);
-  for(int i=0; i<1000; i++)
-    {
-      uint32_t x = rand() % screen->width;
-      uint32_t y = rand() % screen->height;
-      PutPixelSDL(screen, x, y, colour);
-    }
+  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+
+  vec3 colour(1.0, 0.0, 0.0);
+  for (int i = 0; i < 1000; i++) {
+    uint32_t x = rand() % screen->width;
+    uint32_t y = rand() % screen->height;
+    PutPixelSDL(screen, x, y, colour);
+  }
 }
 
 /*Place updates of parameters here*/
-void Update()
-{
+void Update() {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
-  float dt = float(t2-t);
+  float dt = float(t2 - t);
   t = t2;
-  /*Good idea to remove this*/
-  std::cout << "Render time: " << dt << " ms." << std::endl;
   /* Update variables*/
 }
