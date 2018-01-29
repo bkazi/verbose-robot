@@ -179,7 +179,7 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
     float dist = glm::determinant(mat3(b, e1, e2)) / detA;
     
     // Calculate point of intersection
-    if (dist >= 0 && dist < closestIntersection.distance) {
+    if (dist > 0 && dist < closestIntersection.distance) {
       float u = glm::determinant(mat3(-vec3(dir), b, e2)) / detA;
       float v = glm::determinant(mat3(-vec3(dir), e1, b)) / detA;
       if (u >= 0 && v >= 0 && u + v <= 1) {
@@ -196,6 +196,14 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
   vec3 P = lightColor;
   vec4 n = scene[intersection.triangleIndex].normal;
-  vec4 r = glm::normalize(lightPos - intersection.position);
-  return (P * max(glm::dot(r, n), 0.0f)) / (float) (4 * M_PI * intersection.distance);
+  vec4 r = lightPos - intersection.position;
+  vec4 rN = glm::normalize(r);
+  float rL = glm::length(r);
+  Intersection shadowIntersection;
+  if (ClosestIntersection(intersection.position, rN, scene, shadowIntersection)) {
+    if (shadowIntersection.distance < rL) {
+      return vec3(0);
+    }
+  }
+  return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
 }
