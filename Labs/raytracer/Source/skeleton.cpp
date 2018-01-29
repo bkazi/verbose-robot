@@ -12,8 +12,8 @@ using glm::mat4;
 using glm::vec3;
 using glm::vec4;
 
-#define SCREEN_WIDTH 1080
-#define SCREEN_HEIGHT 1080
+#define SCREEN_WIDTH 256
+#define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 
 /* ----------------------------------------------------------------------------*/
@@ -21,6 +21,9 @@ using glm::vec4;
 struct Camera {
   float focalLength;
   vec4 position;
+  mat4 rotation;
+  float movementSpeed;
+  float rotationSpeed;
 };
 
 struct Intersection {
@@ -46,6 +49,9 @@ int main(int argc, char *argv[]) {
   Camera camera = {
     SCREEN_HEIGHT,
     vec4(0, 0, -3, 1),
+    vec4(0, 0, 0, 1),
+    0.001,
+    0.001,
   };
 
   while (NoQuitMessageSDL()) {
@@ -67,7 +73,6 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
 
   for (int y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
-      //vec4 direction = glm::normalize(vec4(x - SCREEN_WIDTH/2, y - SCREEN_HEIGHT/2, camera.focalLength, 1));
       vec4 direction = glm::normalize(vec4(x, y, camera.focalLength, 1));
       Intersection intersection;
       if (ClosestIntersection(camera.position, direction, scene, intersection)) {
@@ -86,32 +91,53 @@ void Update(Camera &camera) {
   t = t2;
   cout << "Render time: " << dt << " ms.\n";
   /* Update variables*/
-  const float speed = 0.001;
 
   const Uint8 *keystate = SDL_GetKeyboardState(NULL);
   if (keystate[SDL_SCANCODE_W]) {
-    cout << "w in press\n";
-    camera.position.z += speed * dt;
+    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.x += camera.rotationSpeed *dt;
+    } else {
+      camera.position.z += camera.movementSpeed * dt;
+    }
   }
 
   if (keystate[SDL_SCANCODE_S]) {
-    camera.position.z -= speed * dt;
+    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.x -= camera.rotationSpeed *dt;
+    } else {
+      camera.position.z -= camera.movementSpeed * dt;
+    }
   }
 
   if (keystate[SDL_SCANCODE_A]) {
-    camera.position.x -= speed * dt;
+    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.y -= camera.rotationSpeed *dt;
+    } else {
+      camera.position.x -= camera.movementSpeed * dt;
+    }
   }
 
   if (keystate[SDL_SCANCODE_D]) {
-    camera.position.x += speed * dt;
+    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.y += camera.rotationSpeed *dt;
+    } else {
+      camera.position.x += camera.movementSpeed * dt;
+    }
   }
 
   if (keystate[SDL_SCANCODE_Q]) {
-    camera.position.y += speed * dt;
+    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.z += camera.rotationSpeed *dt;
+    } else {
+      camera.position.y += camera.movementSpeed * dt;
+    }
   }
 
-  if (keystate[SDL_SCANCODE_E]) {
-    camera.position.y -= speed * dt;
+  if (keystate[SDL_SCANCODE_E]) {if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.z -= camera.rotationSpeed *dt;
+    } else {
+      camera.position.y -= camera.movementSpeed * dt;
+    }
   }
 }
 
