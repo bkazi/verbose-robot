@@ -5,6 +5,7 @@
 #include "TestModelH.h"
 #include <stdint.h>
 #include <limits.h>
+#include <math.h>
 
 using namespace std;
 using glm::mat3;
@@ -21,7 +22,9 @@ using glm::vec4;
 struct Camera {
   float focalLength;
   vec4 position;
-  vec4 rotation;
+  mat3 R;
+  vec3 rotation;
+  vec3 movement;
   float movementSpeed;
   float rotationSpeed;
 };
@@ -49,7 +52,9 @@ int main(int argc, char *argv[]) {
   Camera camera = {
     SCREEN_HEIGHT,
     vec4(0, 0, -3, 1),
-    vec4(0, 0, 0, 1),
+    mat3(1),
+    vec3(0, 0, 0),
+    vec3(0, 0, 0),
     0.001,
     0.001,
   };
@@ -73,7 +78,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
 
   for (int y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
-      vec4 direction = glm::normalize(vec4(x, y, camera.focalLength, 1));
+      vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
       Intersection intersection;
       if (ClosestIntersection(camera.position, direction, scene, intersection)) {
         PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, scene[intersection.triangleIndex].color);
@@ -92,53 +97,64 @@ void Update(Camera &camera) {
   cout << "Render time: " << dt << " ms.\n";
   /* Update variables*/
 
+  camera.movement = vec3(0);
+
   const Uint8 *keystate = SDL_GetKeyboardState(NULL);
   if (keystate[SDL_SCANCODE_W]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x += camera.rotationSpeed *dt;
+      camera.rotation.x += camera.rotationSpeed * dt;
     } else {
-      camera.position.z += camera.movementSpeed * dt;
+      camera.movement.z += camera.movementSpeed * dt;
     }
   }
 
   if (keystate[SDL_SCANCODE_S]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x -= camera.rotationSpeed *dt;
+      camera.rotation.x -= camera.rotationSpeed * dt;
     } else {
-      camera.position.z -= camera.movementSpeed * dt;
+      camera.movement.z -= camera.movementSpeed * dt;
     }
   }
 
   if (keystate[SDL_SCANCODE_A]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y -= camera.rotationSpeed *dt;
+      camera.rotation.y -= camera.rotationSpeed * dt;
     } else {
-      camera.position.x -= camera.movementSpeed * dt;
+      camera.movement.x -= camera.movementSpeed * dt;
     }
   }
 
   if (keystate[SDL_SCANCODE_D]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y += camera.rotationSpeed *dt;
+      camera.rotation.y += camera.rotationSpeed * dt;
     } else {
-      camera.position.x += camera.movementSpeed * dt;
+      camera.movement.x += camera.movementSpeed * dt;
     }
   }
 
   if (keystate[SDL_SCANCODE_Q]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.z += camera.rotationSpeed *dt;
+      camera.rotation.z += camera.rotationSpeed * dt;
     } else {
-      camera.position.y += camera.movementSpeed * dt;
+      camera.movement.y += camera.movementSpeed * dt;
     }
   }
 
-  if (keystate[SDL_SCANCODE_E]) {if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.z -= camera.rotationSpeed *dt;
+  if (keystate[SDL_SCANCODE_E]) {
+    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
+      camera.rotation.z -= camera.rotationSpeed * dt;
     } else {
-      camera.position.y -= camera.movementSpeed * dt;
+      camera.movement.y -= camera.movementSpeed * dt;
     }
   }
+
+  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, 1-(pow(camera.rotation.x,2))/2, camera.rotation.x), vec3(0, -camera.rotation.x, 1-(pow(camera.rotation.x,2))/2));
+  mat3 Ry = mat3(vec3(1-(pow(camera.rotation.y,2))/2, 0, -camera.rotation.y), vec3(0, 1, 0), vec3(camera.rotation.y, 0, 1-(pow(camera.rotation.y,2))/2));
+  mat3 Rz = mat3(vec3(1-(pow(camera.rotation.z,2))/2, camera.rotation.z, 0), vec3(-camera.rotation.z, 1-(pow(camera.rotation.z,2))/2, 0), vec3(0, 0, 1));
+  camera.R = Rx * Ry * Rz;
+  camera.position.x += (camera.movement * camera.R).x;
+  camera.position.y += (camera.movement * camera.R).y;
+  camera.position.z += (camera.movement * camera.R).z;
 }
 
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection) {
