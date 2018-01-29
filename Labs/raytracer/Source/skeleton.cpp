@@ -160,7 +160,7 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
     
     // Calculate point of intersection
     if (x.y >= 0 && x.z >= 0 && x.y + x.z <= 1) {
-      if (x.x < best.x) {
+      if (x.x >= 0 && x.x < best.x) {
         best = x;
         triangleIndex = index;
         position = vec3(v0.x, v0.y, v0.z) + (x.y * e1) + (x.z * e2);
