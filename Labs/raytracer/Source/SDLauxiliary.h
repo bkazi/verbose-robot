@@ -157,7 +157,7 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
   uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
   uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
 
-  s->buffer[y*s->width+x] = (128<<24) + (r<<16) + (g<<8) + b;
+  s->buffer[y*s->width+x] = (0xFF<<24) + (r<<16) + (g<<8) + b;
 }
 
 
