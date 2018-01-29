@@ -21,6 +21,7 @@ using glm::vec4;
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
 vec3 lightColor = 14.f * vec3(1, 1, 1); 
+vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
 
 /* ----------------------------------------------------------------------------*/
 /* STRUCTS                                                                     */
@@ -87,7 +88,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
       if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-        vec3 color = DirectLight(intersection, scene) * scene[intersection.triangleIndex].color;
+        vec3 color = (DirectLight(intersection, scene) + indirectLighting) * scene[intersection.triangleIndex].color;
         PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
       }
     }
