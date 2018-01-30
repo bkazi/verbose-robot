@@ -118,7 +118,7 @@ void Update(Camera &camera) {
   const Uint8 *keystate = SDL_GetKeyboardState(NULL);
   if (keystate[SDL_SCANCODE_W]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x += camera.rotationSpeed * dt;
+      camera.rotation.x -= camera.rotationSpeed * dt;
     } else {
       camera.movement.z += camera.movementSpeed * dt;
     }
@@ -126,7 +126,7 @@ void Update(Camera &camera) {
 
   if (keystate[SDL_SCANCODE_S]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x -= camera.rotationSpeed * dt;
+      camera.rotation.x += camera.rotationSpeed * dt;
     } else {
       camera.movement.z -= camera.movementSpeed * dt;
     }
@@ -134,7 +134,7 @@ void Update(Camera &camera) {
 
   if (keystate[SDL_SCANCODE_A]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y -= camera.rotationSpeed * dt;
+      camera.rotation.y += camera.rotationSpeed * dt;
     } else {
       camera.movement.x -= camera.movementSpeed * dt;
     }
@@ -142,7 +142,7 @@ void Update(Camera &camera) {
 
   if (keystate[SDL_SCANCODE_D]) {
     if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y += camera.rotationSpeed * dt;
+      camera.rotation.y -= camera.rotationSpeed * dt;
     } else {
       camera.movement.x += camera.movementSpeed * dt;
     }
