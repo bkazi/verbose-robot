@@ -205,15 +205,19 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
 }
 
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce) {
+  if (BOUNCES == 0) {
+    return indirectLighting;
+  }
   if (bounce == 0) {
     return vec3(0);
   } else {
     vec4 n = scene[intersection.triangleIndex].normal;
-    vec4 reflect = glm::normalize(glm::reflect(-dir, n));
+    vec4 reflect = glm::normalize(glm::reflect(dir, n));
     Intersection reflectIntersection;
     if (ClosestIntersection(intersection.position, reflect, scene, reflectIntersection)) {
+      float rL = glm::distance(intersection.position, reflectIntersection.position);
       vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, reflect, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
-      return (P * max(glm::dot(reflect, n), 0.0f)) / (float) (4 * M_PI * pow(reflectIntersection.distance, 2));
+      return (P * max(glm::dot(reflect, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
     } else {
       return vec3(0);
     }
@@ -228,7 +232,8 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
   float rL = glm::length(r);
   Intersection shadowIntersection;
   if (ClosestIntersection(intersection.position, rN, scene, shadowIntersection)) {
-    if (shadowIntersection.distance < rL) {
+    float distance = glm::distance(intersection.position, shadowIntersection.position);
+    if (distance < rL) {
       return vec3(0);
     }
   }
