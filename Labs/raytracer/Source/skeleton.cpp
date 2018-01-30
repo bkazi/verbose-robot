@@ -215,9 +215,8 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> 
     vec4 reflect = glm::normalize(glm::reflect(dir, n));
     Intersection reflectIntersection;
     if (ClosestIntersection(intersection.position, reflect, scene, reflectIntersection)) {
-      float rL = glm::distance(intersection.position, reflectIntersection.position);
       vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, reflect, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
-      return (P * max(glm::dot(reflect, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
+      return (P * max(glm::dot(reflect, n), 0.0f));
     } else {
       return vec3(0);
     }
