@@ -18,6 +18,7 @@ using glm::vec4;
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 2
+#define BOUNCES 2
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
@@ -49,6 +50,7 @@ void Update(Camera &camera);
 void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
+vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce);
 
 int main(int argc, char *argv[]) {
 
@@ -93,7 +95,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
           float ep = (float) 1 / NUM_RAYS;
           vec4 direction = glm::normalize(vec4(vec3((float) x + ep*j, (float) y + ep*i, camera.focalLength) * camera.R, 1));
           if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-            color += (DirectLight(intersection, scene) + indirectLighting) * scene[intersection.triangleIndex].color;
+            color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
           }
         }
       }
@@ -200,6 +202,22 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
   }
 
   return closestIntersection.triangleIndex != -1;
+}
+
+vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce) {
+  if (bounce == 0) {
+    return vec3(0);
+  } else {
+    vec4 n = scene[intersection.triangleIndex].normal;
+    vec4 reflect = glm::normalize(glm::reflect(-dir, n));
+    Intersection reflectIntersection;
+    if (ClosestIntersection(intersection.position, reflect, scene, reflectIntersection)) {
+      vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, reflect, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
+      return (P * max(glm::dot(reflect, n), 0.0f)) / (float) (4 * M_PI * pow(reflectIntersection.distance, 2));
+    } else {
+      return vec3(0);
+    }
+  }
 }
 
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
