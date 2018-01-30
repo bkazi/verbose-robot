@@ -86,23 +86,41 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
   /* Clear buffer */
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 
+  float depth[SCREEN_WIDTH][SCREEN_HEIGHT];
+  float tempDepth;
+  float maxDepth = -1;
+
   Intersection intersection;
   for (int y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec3 color = vec3(0);
+      tempDepth = 0;
       for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
         for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
           float ep = (float) 1 / NUM_RAYS;
           vec4 direction = glm::normalize(vec4(vec3((float) x + ep*j, (float) y + ep*i, camera.focalLength) * camera.R, 1));
           if (ClosestIntersection(camera.position, direction, scene, intersection)) {
             color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+            tempDepth += intersection.distance;
           }
         }
       }
       color /= NUM_RAYS * NUM_RAYS;
+      tempDepth /= NUM_RAYS * NUM_RAYS;
+      depth[x + SCREEN_WIDTH/2][y + SCREEN_HEIGHT/2] = tempDepth;
+      if (tempDepth > maxDepth) {
+        maxDepth = tempDepth;
+      }
       PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
     }
   }
+
+  // for (int y = 0; y < SCREEN_HEIGHT; y++) {
+  //   for (int x = 0; x < SCREEN_WIDTH; x++) {
+  //     if (depth[x][y] == 0) PutPixelSDL(screen, x, y, vec3(0));
+  //     PutPixelSDL(screen, x, y, vec3(1 - (depth[x][y] / maxDepth)));
+  //   }
+  // }
 }
 
 /*Place updates of parameters here*/
