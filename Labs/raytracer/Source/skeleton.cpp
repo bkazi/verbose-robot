@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h>
+#include <random> 
 #include <time.h>
 #include <stdint.h>
 #include <limits.h>
@@ -55,6 +56,8 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce);
 mat3 CalcRotationMatrix(float x, float y, float z);
+vec3 uniformSampleHemisphere(const float &r1, const float &r2);
+void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 
 int main(int argc, char *argv[]) {
 
@@ -96,8 +99,10 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
   float maxDepth = -1;
 
   Intersection intersection;
-  for (int y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
-    for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
+  int x, y;
+  #pragma omp parallel for private(x, y, intersection, tempDepth, maxDepth)
+  for (y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
+    for (x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec3 color = vec3(0);
       tempDepth = 0;
       if (NUM_RAYS <= 1) {
@@ -108,17 +113,15 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
         }
       } else {
         for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
-          for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-            float ep = (float) 1 / NUM_RAYS;
-            vec4 direction = glm::normalize(vec4(vec3((float) x + ep*j, (float) y + ep*i, camera.focalLength) * camera.R, 1));
-            if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-              color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
-              tempDepth += intersection.distance;
-            }
+          float ep = (float) 1 / NUM_RAYS;
+          vec4 direction = glm::normalize(vec4(vec3((float) x + ep*i, (float) y + ep*i, camera.focalLength) * camera.R, 1));
+          if (ClosestIntersection(camera.position, direction, scene, intersection)) {
+            color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+            tempDepth += intersection.distance;
           }
         }
-        color /= NUM_RAYS * NUM_RAYS;
-        tempDepth /= NUM_RAYS * NUM_RAYS;
+        color /= NUM_RAYS;
+        tempDepth /= NUM_RAYS;
       }
       depth[x + SCREEN_WIDTH/2][y + SCREEN_HEIGHT/2] = tempDepth;
       if (tempDepth > maxDepth) {
@@ -232,6 +235,9 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
   return closestIntersection.triangleIndex != -1;
 }
 
+std::default_random_engine generator; 
+std::uniform_real_distribution<float> distribution(0, 1);
+
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce) {
   if (BOUNCES == 0) {
     return indirectLighting;
@@ -241,13 +247,16 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> 
   } else {
     vec4 n = scene[intersection.triangleIndex].normal;
     vec3 light = vec3(0);
+    vec3 Nt, Nb;
+    createCoordinateSystem(vec3(n), Nt, Nb);
     for (int i = 0; i < NUM_SAMPLES; i++) {
-      float theta1 = rand() / (RAND_MAX / M_PI);
-      float theta2 = rand() / (RAND_MAX / M_PI);
-      float theta3 = rand() / (RAND_MAX / M_PI);
-      vec4 rayDir = vec4(CalcRotationMatrix(theta1, 0, theta3) * vec3(n), 1);
+      float r1 = distribution(generator);
+      float r2 = distribution(generator);
+      vec3 sample = uniformSampleHemisphere(r1, r2); 
+      vec3 sampleWorld(mat3(Nb, vec3(n), Nt) * sample);
+      vec4 rayDir = vec4(sampleWorld, 1);
       Intersection reflectIntersection;
-      if (ClosestIntersection(intersection.position, rayDir, scene, reflectIntersection)) {
+      if (ClosestIntersection(intersection.position + (rayDir * 1e-4f), rayDir, scene, reflectIntersection)) {
         vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, rayDir, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
         light += (P * max(glm::dot(rayDir, n), 0.0f));
       }
@@ -264,18 +273,36 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
   float rL = glm::length(r);
   vec4 rN = r / rL;
   Intersection shadowIntersection;
-  if (ClosestIntersection(intersection.position + (n * (float) 1e-4), rN, scene, shadowIntersection)) {
+  if (ClosestIntersection(intersection.position + (n * 1e-4f), rN, scene, shadowIntersection)) {
     float distance = glm::distance(intersection.position, shadowIntersection.position);
     if (distance < rL) {
       return vec3(0);
     }
   }
-  return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
+  return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * powf(rL, 2));
 }
 
 mat3 CalcRotationMatrix(float x, float y, float z) {
-  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cos(x), sin(x)), vec3(0, -sin(x), cos(x)));
-  mat3 Ry = mat3(vec3(cos(y), 0, -sin(y)), vec3(0, 1, 0), vec3(sin(y), 0, cos(y)));
-  mat3 Rz = mat3(vec3(cos(z), sin(z), 0), vec3(-sin(z), cos(z), 0), vec3(0, 0, 1));
+  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cosf(x), sinf(x)), vec3(0, -sinf(x), cosf(x)));
+  mat3 Ry = mat3(vec3(cosf(y), 0, -sinf(y)), vec3(0, 1, 0), vec3(sinf(y), 0, cosf(y)));
+  mat3 Rz = mat3(vec3(cosf(z), sinf(z), 0), vec3(-sinf(z), cosf(z), 0), vec3(0, 0, 1));
   return Rx * Ry * Rz;
 }
+
+vec3 uniformSampleHemisphere(const float &r1, const float &r2) { 
+  // cos(theta) = u1 = y
+  // cos^2(theta) + sin^2(theta) = 1 -> sin(theta) = srtf(1 - cos^2(theta))
+  float sinTheta = sqrtf(1 - r1 * r1); 
+  float phi = 2 * M_PI * r2; 
+  float x = sinTheta * cosf(phi); 
+  float z = sinTheta * sinf(phi); 
+  return vec3(x, r1, z); 
+}
+
+void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) { 
+  if (fabs(N.x) > fabs(N.y)) 
+      Nt = glm::normalize(vec3(N.z, 0, -N.x)); 
+  else 
+      Nt = glm::normalize(vec3(0, -N.z, N.y)); 
+  Nb = glm::cross(N, Nt); 
+} 
