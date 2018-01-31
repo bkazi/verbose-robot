@@ -1,4 +1,6 @@
 #include <iostream>
+#include <stdlib.h>
+#include <time.h>
 #include <stdint.h>
 #include <limits.h>
 #include <math.h>
@@ -17,8 +19,9 @@ using glm::vec4;
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
-#define NUM_RAYS 2
-#define BOUNCES 2
+#define NUM_RAYS 0
+#define BOUNCES 1
+#define NUM_SAMPLES 64
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
@@ -51,6 +54,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce);
+mat3 CalcRotationMatrix(float x, float y, float z);
 
 int main(int argc, char *argv[]) {
 
@@ -69,6 +73,7 @@ int main(int argc, char *argv[]) {
     0.001,
   };
 
+  srand(42);
   while (NoQuitMessageSDL()) {
     Update(camera);
     Draw(screen, camera, scene);
@@ -95,18 +100,26 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
     for (int x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec3 color = vec3(0);
       tempDepth = 0;
-      for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
-        for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-          float ep = (float) 1 / NUM_RAYS;
-          vec4 direction = glm::normalize(vec4(vec3((float) x + ep*j, (float) y + ep*i, camera.focalLength) * camera.R, 1));
-          if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-            color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
-            tempDepth += intersection.distance;
+      if (NUM_RAYS <= 1) {
+        vec4 direction = glm::normalize(vec4(vec3((float) x, (float) y, camera.focalLength) * camera.R, 1));
+        if (ClosestIntersection(camera.position, direction, scene, intersection)) {
+          color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+          tempDepth += intersection.distance;
+        }
+      } else {
+        for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
+          for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
+            float ep = (float) 1 / NUM_RAYS;
+            vec4 direction = glm::normalize(vec4(vec3((float) x + ep*j, (float) y + ep*i, camera.focalLength) * camera.R, 1));
+            if (ClosestIntersection(camera.position, direction, scene, intersection)) {
+              color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+              tempDepth += intersection.distance;
+            }
           }
         }
+        color /= NUM_RAYS * NUM_RAYS;
+        tempDepth /= NUM_RAYS * NUM_RAYS;
       }
-      color /= NUM_RAYS * NUM_RAYS;
-      tempDepth /= NUM_RAYS * NUM_RAYS;
       depth[x + SCREEN_WIDTH/2][y + SCREEN_HEIGHT/2] = tempDepth;
       if (tempDepth > maxDepth) {
         maxDepth = tempDepth;
@@ -184,10 +197,7 @@ void Update(Camera &camera) {
     }
   }
 
-  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cos(camera.rotation.x), sin(camera.rotation.x)), vec3(0, -sin(camera.rotation.x), cos(camera.rotation.x)));
-  mat3 Ry = mat3(vec3(cos(camera.rotation.y), 0, -sin(camera.rotation.y)), vec3(0, 1, 0), vec3(sin(camera.rotation.y), 0, cos(camera.rotation.y)));
-  mat3 Rz = mat3(vec3(cos(camera.rotation.z), sin(camera.rotation.z), 0), vec3(-sin(camera.rotation.z), cos(camera.rotation.z), 0), vec3(0, 0, 1));
-  camera.R = Rx * Ry * Rz;
+  camera.R = CalcRotationMatrix(camera.rotation.x, camera.rotation.y, camera.rotation.z);
   camera.position += vec4(vec3(camera.movement * camera.R), 0);
 }
 
@@ -230,14 +240,20 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> 
     return vec3(0);
   } else {
     vec4 n = scene[intersection.triangleIndex].normal;
-    vec4 reflect = glm::normalize(glm::reflect(dir, n));
-    Intersection reflectIntersection;
-    if (ClosestIntersection(intersection.position, reflect, scene, reflectIntersection)) {
-      vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, reflect, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
-      return (P * max(glm::dot(reflect, n), 0.0f));
-    } else {
-      return vec3(0);
+    vec3 light = vec3(0);
+    for (int i = 0; i < NUM_SAMPLES; i++) {
+      float theta1 = rand() / (RAND_MAX / M_PI);
+      float theta2 = rand() / (RAND_MAX / M_PI);
+      float theta3 = rand() / (RAND_MAX / M_PI);
+      vec4 rayDir = vec4(CalcRotationMatrix(theta1, 0, theta3) * vec3(n), 1);
+      Intersection reflectIntersection;
+      if (ClosestIntersection(intersection.position, rayDir, scene, reflectIntersection)) {
+        vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, rayDir, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
+        light += (P * max(glm::dot(rayDir, n), 0.0f));
+      }
     }
+    light /= NUM_SAMPLES;
+    return light;
   }
 }
 
@@ -245,14 +261,21 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
   vec3 P = lightColor;
   vec4 n = scene[intersection.triangleIndex].normal;
   vec4 r = lightPos - intersection.position;
-  vec4 rN = glm::normalize(r);
   float rL = glm::length(r);
+  vec4 rN = r / rL;
   Intersection shadowIntersection;
-  if (ClosestIntersection(intersection.position, rN, scene, shadowIntersection)) {
+  if (ClosestIntersection(intersection.position + (n * (float) 1e-4), rN, scene, shadowIntersection)) {
     float distance = glm::distance(intersection.position, shadowIntersection.position);
     if (distance < rL) {
       return vec3(0);
     }
   }
   return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
+}
+
+mat3 CalcRotationMatrix(float x, float y, float z) {
+  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cos(x), sin(x)), vec3(0, -sin(x), cos(x)));
+  mat3 Ry = mat3(vec3(cos(y), 0, -sin(y)), vec3(0, 1, 0), vec3(sin(y), 0, cos(y)));
+  mat3 Rz = mat3(vec3(cos(z), sin(z), 0), vec3(-sin(z), cos(z), 0), vec3(0, 0, 1));
+  return Rx * Ry * Rz;
 }
