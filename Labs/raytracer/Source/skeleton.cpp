@@ -3,6 +3,9 @@
 #include <limits.h>
 #include <math.h>
 #include <algorithm>
+#include <fstream>
+#include <string>
+#include <sstream>
 #include <glm/glm.hpp>
 #include <SDL.h>
 #include "SDLauxiliary.h"
@@ -49,34 +52,38 @@ void Update(Camera &camera);
 void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
+void LoadModel(string path);
 
 int main(int argc, char *argv[]) {
+  cout << "Started";
 
-  screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
+  LoadModel("/home/gregory/Dropbox/gtr8/r8_gt_obj.obj");
 
-  vector<Triangle> scene;
-  LoadTestModel(scene);
+  // screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
-  Camera camera = {
-    SCREEN_HEIGHT,
-    vec4(0, 0, -3, 1),
-    mat3(1),
-    vec3(0, 0, 0),
-    vec3(0, 0, 0),
-    0.001,
-    0.001,
-  };
+  // vector<Triangle> scene;
+  // LoadTestModel(scene);
 
-  while (NoQuitMessageSDL()) {
-    Update(camera);
-    Draw(screen, camera, scene);
-    SDL_Renderframe(screen);
-  }
+  // Camera camera = {
+  //   SCREEN_HEIGHT,
+  //   vec4(0, 0, -3, 1),
+  //   mat3(1),
+  //   vec3(0, 0, 0),
+  //   vec3(0, 0, 0),
+  //   0.001,
+  //   0.001,
+  // };
 
-  SDL_SaveImage(screen, "screenshot.bmp");
+  // while (NoQuitMessageSDL()) {
+  //   Update(camera);
+  //   Draw(screen, camera, scene);
+  //   SDL_Renderframe(screen);
+  // }
 
-  KillSDL(screen);
-  return 0;
+  // SDL_SaveImage(screen, "screenshot.bmp");
+
+  // KillSDL(screen);
+  // return 0;
 }
 
 /*Place your drawing here*/
@@ -215,4 +222,17 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
     }
   }
   return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
+}
+
+void LoadModel(string path) {
+  cout << "called";
+  ifstream objFile (path);
+
+  while(!objFile.eof()) {
+    if (objFile.peek() == 'v') {
+        string v, x, y, z;
+        objFile >> v >> x >> y >> z;
+        cout << x << "\t" << y << "\t" << z << endl;
+    }
+  }
 }
