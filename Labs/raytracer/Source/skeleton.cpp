@@ -55,7 +55,6 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
 void LoadModel(string path);
 
 int main(int argc, char *argv[]) {
-  cout << "Started";
 
   LoadModel("/home/gregory/Dropbox/gtr8/r8_gt_obj.obj");
 
@@ -224,15 +223,101 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
   return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * pow(rL, 2));
 }
 
-void LoadModel(string path) {
-  cout << "called";
-  ifstream objFile (path);
+vector<vec3> parseFace(string f1, string f2, string f3, string f4, vector<vec3> vertices, vector<vec2> texture, vector<vec3> normals) {
+  if (f4 != "") {
+    // Do split and recurse
+  }
+}
 
-  while(!objFile.eof()) {
-    if (objFile.peek() == 'v') {
-        string v, x, y, z;
-        objFile >> v >> x >> y >> z;
-        cout << x << "\t" << y << "\t" << z << endl;
+void LoadModel(string path) {
+  // See here: https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html
+  vector<vec3> vertices;
+  vector<vec2> texture;
+  vector<vec3> normals;
+
+  vector<vec3> face_vertices;
+  vector<vec3> face_texture;
+  vector<vec3> face_normals;
+
+  ifstream objFile (path);
+  if (!objFile) {
+    cerr << "Cannot open " << filename << std::endl;
+    exit(1);
+  }
+
+  string line;
+  while (getline(objFile, line)) {
+    if (line.substr(0, 2) == "v ") {
+      istringstream v(line.substr(2));
+      vec3 vert;
+      double x, y, z;
+      v >> x >> y >> z;
+      vert = vec3(x,y,z);
+      vertices.push_back(vert);
+    } else if (line.substr(0, 2) == "vt") {
+      istringstream vt(line.substr(3));
+      vec2 tex;
+      int u, v;
+      vt >> u >> v;
+      tex = vec2(u, v);
+      texture.push_back(tex);
+    } else if (line.substr(0, 2) == "vn") {
+      istringstream vn(line.substr(3));
+      vec3 norm;
+      int x, y, z;
+      vt >> x >> y >> z;
+      norm = vec4(x, y, z);
+      normals.push_back(norm);
+    } else if(line.substr(0, 2) == "f "){
+      istringstream f(line.substr(3));
+      string f1, f2, f3, f4;
+
+      f >> f1 >> f2 >> f3 >> f4;
+
+      vec3 face = parseFace(f1, f2, f3, f4, vertices, texture, normals);
+      
+      // Don't look at this, it's awful
+      if (f4 != "") {
+
+      } else {
+        int f1v, f1t, f1n, f2v, f2t, f2n, f3v, f3t, f3n;
+        const char* f1c = f1.c_str(), f2c = f2.c_str(), f3c = f3.c_str();
+        sscanf(f1c, "%i/%i/%i", &f1v, &f1t, &f1n);
+        sscanf(f2c, "%i/%i/%i", &f2v, &f2t, &f2n);
+        sscanf(f3c, "%i/%i/%i", &f3v, &f3t, &f3n);
+
+        if (f1v < 0) {
+          f1v += vertices.size();
+        }
+        if (f2v < 0) {
+          f1v += vertices.size();
+        }
+        if (f3v < 0) {
+          f1v += vertices.size();
+        }
+        if (f1t < 0) {
+          f1v += texture.size();
+        }
+        if (f2t < 0) {
+          f1v += texture.size();
+        }
+        if (f3t < 0) {
+          f1v += texture.size();
+        }
+        if (f1n < 0) {
+          f1v += normals.size();
+        }
+        if (f2n < 0) {
+          f1v += normals.size();
+        }
+        if (f3t < 0) {
+          f1n += normals.size();
+        }
+
+        face_vertices.push_back(vec3(f1v, f2v, f3v));
+        face_texture.push_back(vec3(f1t, f2t, f3t));
+        face_normals.push_back(vec3(f1n, f2n, f3n));
+      }
     }
   }
 }
