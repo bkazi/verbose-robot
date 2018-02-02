@@ -28,6 +28,7 @@ float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
 vec3 lightColor = 14.f * vec3(1, 1, 1); 
 vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
+float shininess = 10;
 
 /* ----------------------------------------------------------------------------*/
 /* STRUCTS                                                                     */
@@ -53,7 +54,7 @@ struct Intersection {
 void Update(Camera &camera);
 void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
-vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene);
+vec3 DirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, bool spec);
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce);
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
@@ -108,7 +109,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
       if (NUM_RAYS <= 1) {
         vec4 direction = glm::normalize(vec4(vec3((float) x, (float) y, camera.focalLength) * camera.R, 1));
         if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-          color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+          color += (DirectLight(intersection, direction, scene, true) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
           tempDepth += intersection.distance;
         }
       } else {
@@ -116,7 +117,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
           float ep = (float) 1 / NUM_RAYS;
           vec4 direction = glm::normalize(vec4(vec3((float) x + ep*i, (float) y + ep*i, camera.focalLength) * camera.R, 1));
           if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-            color += (DirectLight(intersection, scene) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+            color += (DirectLight(intersection, direction, scene, true) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
             tempDepth += intersection.distance;
           }
         }
@@ -257,7 +258,7 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> 
       vec4 rayDir = vec4(sampleWorld, 1);
       Intersection reflectIntersection;
       if (ClosestIntersection(intersection.position + (rayDir * 1e-4f), rayDir, scene, reflectIntersection)) {
-        vec3 P = (DirectLight(reflectIntersection, scene) + IndirectLight(reflectIntersection, rayDir, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
+        vec3 P = (DirectLight(reflectIntersection, rayDir, scene, false) + IndirectLight(reflectIntersection, rayDir, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
         light += (P * max(glm::dot(rayDir, n), 0.0f));
       }
     }
@@ -266,7 +267,7 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> 
   }
 }
 
-vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
+vec3 DirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, bool spec) {
   vec3 P = lightColor;
   vec4 n = scene[intersection.triangleIndex].normal;
   vec4 r = lightPos - intersection.position;
@@ -279,7 +280,12 @@ vec3 DirectLight(const Intersection &intersection, vector<Triangle> &scene) {
       return vec3(0);
     }
   }
-  return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * powf(rL, 2));
+  vec4 reflected = glm::reflect(dir, n);
+  if (spec) {
+    return (P * (max(glm::dot(rN, n), 0.0f) + max(powf(glm::dot(reflected, rN), shininess), 0.0f))) / (float) (4 * M_PI * powf(rL, 2));
+  } else {
+    return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * powf(rL, 2));
+  }
 }
 
 mat3 CalcRotationMatrix(float x, float y, float z) {
