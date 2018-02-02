@@ -22,13 +22,14 @@ using glm::vec4;
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 0
 #define BOUNCES 1
-#define NUM_SAMPLES 64
+#define NUM_SAMPLES 32
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
 vec3 lightColor = 14.f * vec3(1, 1, 1); 
 vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
-float shininess = 10;
+float shininess = 50;
+float specularity = 0.1;
 
 /* ----------------------------------------------------------------------------*/
 /* STRUCTS                                                                     */
@@ -55,7 +56,7 @@ void Update(Camera &camera);
 void Draw(screen *screen, Camera camera, vector<Triangle> scene);
 bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, bool spec);
-vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce);
+vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce, bool spec);
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
@@ -78,11 +79,11 @@ int main(int argc, char *argv[]) {
   };
 
   srand(42);
-  while (NoQuitMessageSDL()) {
+  // while (NoQuitMessageSDL()) {
     Update(camera);
     Draw(screen, camera, scene);
     SDL_Renderframe(screen);
-  }
+  // }
 
   SDL_SaveImage(screen, "screenshot.bmp");
 
@@ -109,7 +110,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
       if (NUM_RAYS <= 1) {
         vec4 direction = glm::normalize(vec4(vec3((float) x, (float) y, camera.focalLength) * camera.R, 1));
         if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-          color += (DirectLight(intersection, direction, scene, true) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+          color += (DirectLight(intersection, direction, scene, true) + specularity * IndirectLight(intersection, direction, scene, BOUNCES, true) + (1 - specularity) * IndirectLight(intersection, direction, scene, BOUNCES, false)) * scene[intersection.triangleIndex].color;
           tempDepth += intersection.distance;
         }
       } else {
@@ -117,7 +118,7 @@ void Draw(screen *screen, Camera camera, vector<Triangle> scene) {
           float ep = (float) 1 / NUM_RAYS;
           vec4 direction = glm::normalize(vec4(vec3((float) x + ep*i, (float) y + ep*i, camera.focalLength) * camera.R, 1));
           if (ClosestIntersection(camera.position, direction, scene, intersection)) {
-            color += (DirectLight(intersection, direction, scene, true) + IndirectLight(intersection, direction, scene, BOUNCES)) * scene[intersection.triangleIndex].color;
+            color += (DirectLight(intersection, direction, scene, true) + specularity * IndirectLight(intersection, direction, scene, BOUNCES, true) + (1 - specularity) * IndirectLight(intersection, direction, scene, BOUNCES, false)) * scene[intersection.triangleIndex].color;
             tempDepth += intersection.distance;
           }
         }
@@ -239,7 +240,7 @@ bool ClosestIntersection(vec4 start, vec4 dir, vector<Triangle> &triangles, Inte
 std::default_random_engine generator; 
 std::uniform_real_distribution<float> distribution(0, 1);
 
-vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce) {
+vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> &scene, int bounce, bool spec) {
   if (BOUNCES == 0) {
     return indirectLighting;
   }
@@ -247,23 +248,33 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, vector<Triangle> 
     return vec3(0);
   } else {
     vec4 n = scene[intersection.triangleIndex].normal;
-    vec3 light = vec3(0);
-    vec3 Nt, Nb;
-    createCoordinateSystem(vec3(n), Nt, Nb);
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-      float r1 = distribution(generator);
-      float r2 = distribution(generator);
-      vec3 sample = uniformSampleHemisphere(r1, r2); 
-      vec3 sampleWorld(mat3(Nb, vec3(n), Nt) * sample);
-      vec4 rayDir = vec4(sampleWorld, 1);
+    if (spec) {
       Intersection reflectIntersection;
-      if (ClosestIntersection(intersection.position + (rayDir * 1e-4f), rayDir, scene, reflectIntersection)) {
-        vec3 P = (DirectLight(reflectIntersection, rayDir, scene, false) + IndirectLight(reflectIntersection, rayDir, scene, bounce - 1)) * scene[reflectIntersection.triangleIndex].color;
-        light += (P * max(glm::dot(rayDir, n), 0.0f));
+      vec4 reflect = glm::normalize(glm::reflect(dir, n));
+      if (ClosestIntersection(intersection.position + (reflect * 1e-4f), reflect, scene, reflectIntersection)) {
+        vec3 P = (DirectLight(reflectIntersection, reflect, scene, false) + IndirectLight(reflectIntersection, reflect, scene, bounce - 1, true)) * scene[reflectIntersection.triangleIndex].color;
+        return (P * max(glm::dot(reflect, n), 0.0f));
       }
+    } else {
+      vec3 light = vec3(0);
+      vec3 Nt, Nb;
+      createCoordinateSystem(vec3(n), Nt, Nb);
+      for (int i = 0; i < NUM_SAMPLES; i++) {
+        Intersection reflectIntersection;
+        float r1 = distribution(generator);
+        float r2 = distribution(generator);
+        vec3 sample = uniformSampleHemisphere(r1, r2); 
+        vec3 sampleWorld(mat3(Nb, vec3(n), Nt) * sample);
+        vec4 rayDir = vec4(sampleWorld, 1);
+        if (ClosestIntersection(intersection.position + (rayDir * 1e-4f), rayDir, scene, reflectIntersection)) {
+          vec3 P = (DirectLight(reflectIntersection, rayDir, scene, false) + IndirectLight(reflectIntersection, rayDir, scene, bounce - 1, false)) * scene[reflectIntersection.triangleIndex].color;
+          light += (P * max(glm::dot(rayDir, n), 0.0f));
+        }
+      }
+      light /= NUM_SAMPLES;
+      return light;
     }
-    light /= NUM_SAMPLES;
-    return light;
+    return vec3(0);
   }
 }
 
