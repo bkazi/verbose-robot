@@ -15,30 +15,48 @@ public:
 	glm::vec4 v2;
 	glm::vec4 normal;
 	glm::vec3 color;
+	float shininess;
+	float Ks;
+	float Kd;
+	glm::vec3 e1;
+	glm::vec3 e2;
 
-	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color )
-		: v0(v0), v1(v1), v2(v2), color(color)
+	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, float shininess, float Ks, float Kd )
+		: v0(v0), v1(v1), v2(v2), color(color), shininess(shininess), Ks(Ks), Kd(Kd)
 	{
 		ComputeNormal();
 	}
 
 	void ComputeNormal()
 	{
-	  glm::vec3 e1 = glm::vec3(v1.x-v0.x,v1.y-v0.y,v1.z-v0.z);
-	  glm::vec3 e2 = glm::vec3(v2.x-v0.x,v2.y-v0.y,v2.z-v0.z);
-	  glm::vec3 normal3 = glm::normalize( glm::cross( e2, e1 ) );
-	  normal.x = normal3.x;
-	  normal.y = normal3.y;
-	  normal.z = normal3.z;
-	  normal.w = 1.0;
+	  e1 = glm::vec3(v1 - v0);
+	  e2 = glm::vec3(v2 - v0);
+	  glm::vec3 normal3 = glm::normalize(glm::cross(e2, e1));
+	  normal = glm::vec4(normal3, 1.0f);
 	}
+};
+
+class Sphere
+{
+public:
+	glm::vec4 c;
+	float radius;
+	glm::vec3 color;
+	float shininess;
+	float Ks;
+	float Kd;
+
+	Sphere( glm::vec4 c, float radius, glm::vec3 color, float shininess, float Ks, float Kd)
+		: c(c), radius(radius), color(color), shininess(shininess), Ks(Ks), Kd(Kd) {
+			
+		}
 };
 
 // Loads the Cornell Box. It is scaled to fill the volume:
 // -1 <= x <= +1
 // -1 <= y <= +1
 // -1 <= z <= +1
-void LoadTestModel( std::vector<Triangle>& triangles )
+void LoadTestModel(std::vector<Triangle>& triangles, std::vector<Sphere>& spheres)
 {
 	using glm::vec3;
 	using glm::vec4;
@@ -53,7 +71,12 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	vec3 white(  0.75f, 0.75f, 0.75f );
 
 	triangles.clear();
-	triangles.reserve( 5*2*3 );
+	triangles.reserve( 5*2 );
+	
+	spheres.clear();
+	spheres.reserve(2);
+	spheres.push_back(Sphere(glm::vec4(-0.45, 0.6, 0.4, 1), 0.4f, white, 2, 0.04, 0.96));
+	spheres.push_back(Sphere(glm::vec4(0.6, 0.6, -0.4, 1), 0.3f, white, 2, 0.03, 0.97));
 
 	// ---------------------------------------------------------------------------
 	// Room
@@ -71,24 +94,24 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	vec4 H(0,L,L,1);
 
 	// Floor:
-	triangles.push_back( Triangle( C, B, A, green ) );
-	triangles.push_back( Triangle( C, D, B, green ) );
+	triangles.push_back( Triangle( C, B, A, white, 100, 0.25, 0.75 ) );
+	triangles.push_back( Triangle( C, D, B, white, 100, 0.25, 0.75 ) );
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, purple ) );
-	triangles.push_back( Triangle( C, E, G, purple ) );
+	triangles.push_back( Triangle( A, E, C, red, 2, 0.08, 0.92 ) );
+	triangles.push_back( Triangle( C, E, G, red, 2, 0.08, 0.92 ) );
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, yellow ) );
-	triangles.push_back( Triangle( H, F, D, yellow ) );
+	triangles.push_back( Triangle( F, B, D, green, 2, 0.08, 0.92 ) );
+	triangles.push_back( Triangle( H, F, D, green, 2, 0.08, 0.92 ) );
 
 	// Ceiling
-	triangles.push_back( Triangle( E, F, G, cyan ) );
-	triangles.push_back( Triangle( F, H, G, cyan ) );
+	triangles.push_back( Triangle( E, F, G, white, 100, 0.25, 0.75 ) );
+	triangles.push_back( Triangle( F, H, G, white, 100, 0.25, 0.75 ) );
 
 	// Back wall
-	triangles.push_back( Triangle( G, D, C, white ) );
-	triangles.push_back( Triangle( G, H, D, white ) );
+	triangles.push_back( Triangle( G, D, C, white, 100, 0.25, 0.75 ) );
+	triangles.push_back( Triangle( G, H, D, white, 100, 0.25, 0.75 ) );
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -103,25 +126,25 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	G = vec4(240,165,272,1);
 	H = vec4( 82,165,225,1);
 
-	// Front
-	triangles.push_back( Triangle(E,B,A,red) );
-	triangles.push_back( Triangle(E,F,B,red) );
+	// // Front
+	// triangles.push_back( Triangle(E,B,A,red) );
+	// triangles.push_back( Triangle(E,F,B,red) );
 
-	// Front
-	triangles.push_back( Triangle(F,D,B,red) );
-	triangles.push_back( Triangle(F,H,D,red) );
+	// // Front
+	// triangles.push_back( Triangle(F,D,B,red) );
+	// triangles.push_back( Triangle(F,H,D,red) );
 
-	// BACK
-	triangles.push_back( Triangle(H,C,D,red) );
-	triangles.push_back( Triangle(H,G,C,red) );
+	// // BACK
+	// triangles.push_back( Triangle(H,C,D,red) );
+	// triangles.push_back( Triangle(H,G,C,red) );
 
-	// LEFT
-	triangles.push_back( Triangle(G,E,C,red) );
-	triangles.push_back( Triangle(E,A,C,red) );
+	// // LEFT
+	// triangles.push_back( Triangle(G,E,C,red) );
+	// triangles.push_back( Triangle(E,A,C,red) );
 
-	// TOP
-	triangles.push_back( Triangle(G,F,E,red) );
-	triangles.push_back( Triangle(G,H,F,red) );
+	// // TOP
+	// triangles.push_back( Triangle(G,F,E,red) );
+	// triangles.push_back( Triangle(G,H,F,red) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -136,25 +159,25 @@ void LoadTestModel( std::vector<Triangle>& triangles )
 	G = vec4(472,330,406,1);
 	H = vec4(314,330,456,1);
 
-	// Front
-	triangles.push_back( Triangle(E,B,A,blue) );
-	triangles.push_back( Triangle(E,F,B,blue) );
+	// // Front
+	// triangles.push_back( Triangle(E,B,A,blue) );
+	// triangles.push_back( Triangle(E,F,B,blue) );
 
-	// Front
-	triangles.push_back( Triangle(F,D,B,blue) );
-	triangles.push_back( Triangle(F,H,D,blue) );
+	// // Front
+	// triangles.push_back( Triangle(F,D,B,blue) );
+	// triangles.push_back( Triangle(F,H,D,blue) );
 
-	// BACK
-	triangles.push_back( Triangle(H,C,D,blue) );
-	triangles.push_back( Triangle(H,G,C,blue) );
+	// // BACK
+	// triangles.push_back( Triangle(H,C,D,blue) );
+	// triangles.push_back( Triangle(H,G,C,blue) );
 
-	// LEFT
-	triangles.push_back( Triangle(G,E,C,blue) );
-	triangles.push_back( Triangle(E,A,C,blue) );
+	// // LEFT
+	// triangles.push_back( Triangle(G,E,C,blue) );
+	// triangles.push_back( Triangle(E,A,C,blue) );
 
-	// TOP
-	triangles.push_back( Triangle(G,F,E,blue) );
-	triangles.push_back( Triangle(G,H,F,blue) );
+	// // TOP
+	// triangles.push_back( Triangle(G,F,E,blue) );
+	// triangles.push_back( Triangle(G,H,F,blue) );
 
 
 	// ----------------------------------------------
