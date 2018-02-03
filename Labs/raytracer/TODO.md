@@ -1,0 +1,6 @@
+- [x] Spheres
+- [ ] Mesh/Area Lights
+- [ ] Object intersect functions
+- [ ] Russian Roulette bounces
+- [ ] BVH
+- [ ] Indirect Specular (BRDF?)
