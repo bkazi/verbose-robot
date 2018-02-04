@@ -23,6 +23,7 @@ using glm::vec4;
 #define NUM_RAYS 0
 #define BOUNCES 3
 #define NUM_SAMPLES 2
+#define LIVE
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
@@ -74,12 +75,18 @@ int main(int argc, char *argv[]) {
 
   srand(42);
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+#ifdef LIVE
   while (NoQuitMessageSDL()) {
     Update(camera, screen);
     Draw(screen, camera);
     SDL_Renderframe(screen);
-    // Update(camera);
   }
+#else
+  Update(camera, screen);
+  Draw(screen, camera);
+  SDL_Renderframe(screen);
+  Update(camera, screen);
+#endif
 
   SDL_SaveImage(screen, "screenshot.bmp");
 
@@ -102,31 +109,31 @@ void Draw(screen *screen, Camera camera) {
     for (x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec3 color = vec3(0);
       tempDepth = 0;
-      if (NUM_RAYS <= 1) {
-        vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
-        if (ClosestIntersection(camera.position, direction, intersection)) {
-          vec3 tint = shapes[intersection.shapeIndex]->color;
-          float Ks = shapes[intersection.shapeIndex]->Ks;
-          float Kd = shapes[intersection.shapeIndex]->Kd;
-          color += (Kd * DirectLight(intersection, direction, false) + IndirectLight(intersection, direction, BOUNCES, false)) * tint + Ks * DirectLight(intersection, direction, true);
-          tempDepth += intersection.distance;
-        }
-      } else {
-        for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
-          for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-            vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera.focalLength) * camera.R, 1));
-             if (ClosestIntersection(camera.position, direction, intersection)) {
-              vec3 tint = shapes[intersection.shapeIndex]->color;
-              float Ks = shapes[intersection.shapeIndex]->Ks;
-              float Kd = shapes[intersection.shapeIndex]->Kd;
-              color += (Kd * DirectLight(intersection, direction, false) + IndirectLight(intersection, direction, BOUNCES, false)) * tint + Ks * DirectLight(intersection, direction, true);
-              tempDepth += intersection.distance;
-            }
+#if NUM_RAYS <= 1
+      vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
+      if (ClosestIntersection(camera.position, direction, intersection)) {
+        vec3 tint = shapes[intersection.shapeIndex]->color;
+        float Ks = shapes[intersection.shapeIndex]->Ks;
+        float Kd = shapes[intersection.shapeIndex]->Kd;
+        color += (Kd * DirectLight(intersection, direction, false) + IndirectLight(intersection, direction, BOUNCES, false)) * tint + Ks * DirectLight(intersection, direction, true);
+        tempDepth += intersection.distance;
+      }
+#else
+      for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
+        for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
+          vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera.focalLength) * camera.R, 1));
+            if (ClosestIntersection(camera.position, direction, intersection)) {
+            vec3 tint = shapes[intersection.shapeIndex]->color;
+            float Ks = shapes[intersection.shapeIndex]->Ks;
+            float Kd = shapes[intersection.shapeIndex]->Kd;
+            color += (Kd * DirectLight(intersection, direction, false) + IndirectLight(intersection, direction, BOUNCES, false)) * tint + Ks * DirectLight(intersection, direction, true);
+            tempDepth += intersection.distance;
           }
         }
-        color /= NUM_RAYS * NUM_RAYS;
-        tempDepth /= NUM_RAYS * NUM_RAYS;
       }
+      color /= NUM_RAYS * NUM_RAYS;
+      tempDepth /= NUM_RAYS * NUM_RAYS;
+#endif
       depth[x + SCREEN_WIDTH/2][y + SCREEN_HEIGHT/2] = tempDepth;
       if (tempDepth > maxDepth) {
         maxDepth = tempDepth;
@@ -235,9 +242,9 @@ std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);
 
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce, bool spec) {
-  if (BOUNCES == 0) {
+#if BOUNCES == 0
     return indirectLighting;
-  }
+#else
   if (bounce == 0) {
     return vec3(0);
   } else {
@@ -271,6 +278,7 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce, bool 
     light /= count;;
     return light;
   }
+#endif
 }
 
 vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec) {
