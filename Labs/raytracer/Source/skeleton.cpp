@@ -21,8 +21,8 @@ using glm::vec4;
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 0
-#define BOUNCES 1
-#define NUM_SAMPLES 32
+#define BOUNCES 2
+#define NUM_SAMPLES 2
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
@@ -52,7 +52,7 @@ struct Intersection {
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update(Camera &camera);
+void Update(Camera &camera, screen *screen);
 void Draw(screen *screen, Camera camera);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec);
@@ -63,6 +63,7 @@ void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 
 vector<Triangle> triangles;
 vector<Sphere> spheres;
+float samples = 0;
 int main(int argc, char *argv[]) {
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
@@ -80,12 +81,13 @@ int main(int argc, char *argv[]) {
   };
 
   srand(42);
-  // while (NoQuitMessageSDL()) {
-    Update(camera);
+  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+  while (NoQuitMessageSDL()) {
+    Update(camera, screen);
     Draw(screen, camera);
     SDL_Renderframe(screen);
-    Update(camera);
-  // }
+    // Update(camera);
+  }
 
   SDL_SaveImage(screen, "screenshot.bmp");
 
@@ -95,8 +97,7 @@ int main(int argc, char *argv[]) {
 
 /*Place your drawing here*/
 void Draw(screen *screen, Camera camera) {
-  /* Clear buffer */
-  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+  samples++;
 
   float depth[SCREEN_WIDTH][SCREEN_HEIGHT];
   float tempDepth;
@@ -138,7 +139,7 @@ void Draw(screen *screen, Camera camera) {
       if (tempDepth > maxDepth) {
         maxDepth = tempDepth;
       }
-      PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color);
+      PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color, samples);
     }
   }
 
@@ -151,7 +152,7 @@ void Draw(screen *screen, Camera camera) {
 }
 
 /*Place updates of parameters here*/
-void Update(Camera &camera) {
+void Update(Camera &camera, screen *screen) {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -161,6 +162,7 @@ void Update(Camera &camera) {
   /* Update variables*/
 
   camera.movement = vec3(0);
+  vec3 tempRot = camera.rotation;
 
   const Uint8 *keystate = SDL_GetKeyboardState(NULL);
   if (keystate[SDL_SCANCODE_W]) {
@@ -213,6 +215,11 @@ void Update(Camera &camera) {
 
   camera.R = CalcRotationMatrix(camera.rotation.x, camera.rotation.y, camera.rotation.z);
   camera.position += vec4(vec3(camera.movement * camera.R), 0);
+  if (camera.movement != vec3(0) || camera.rotation != tempRot) {
+    memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+    memset(screen->pixels, 0, screen->height * screen->width * sizeof(vec3));
+    samples = 0;
+  }
 }
 
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection) {

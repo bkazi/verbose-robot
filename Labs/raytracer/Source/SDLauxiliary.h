@@ -13,11 +13,13 @@ typedef struct{
   int height;
   int width;
   uint32_t *buffer;
+  glm::vec3* pixels;
+  int samples;
 } screen;
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
 bool NoQuitMessageSDL();
-void PutPixelSDL( screen *s, int x, int y, glm::vec3 color );
+void PutPixelSDL( screen *s, int x, int y, glm::vec3 color, int samples );
 void SDL_Renderframe(screen *s);
 void KillSDL(screen* s);
 void SDL_SaveImage(screen *s, const char* filename);
@@ -64,6 +66,16 @@ void KillSDL(screen* s)
 
 void SDL_Renderframe(screen* s)
 {
+  for (int y = 0; y < s->height; y++) {
+    for (int x = 0; x < s->width; x++) {
+      glm::vec3 colour = s->pixels[y*s->width+x] / (float) s->samples;
+      uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
+      uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
+      uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
+
+      s->buffer[y*s->width+x] = (0xFF<<24) + (r<<16) + (g<<8) + b;
+    }
+  }
   SDL_UpdateTexture(s->texture, NULL, s->buffer, s->width*sizeof(uint32_t));
   SDL_RenderClear(s->renderer);
   SDL_RenderCopy(s->renderer, s->texture, NULL, NULL);
@@ -83,6 +95,8 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
   s->width = width;
   s->height = height;
   s->buffer = new uint32_t[width*height];
+  s->pixels = new glm::vec3[width*height];
+  s->samples = 0;
   memset(s->buffer, 0, width*height*sizeof(uint32_t));
   
   uint32_t flags = SDL_WINDOW_OPENGL;
@@ -146,18 +160,16 @@ bool NoQuitMessageSDL()
   return true;
 }
 
-void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
+void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, int samples)
 {
   if(x<0 || x>=s->width || y<0 || y>=s->height)
     {
       std::cout << "apa" << std::endl;
       return;
     }
-  uint32_t r = uint32_t( glm::clamp( 255*colour.r, 0.f, 255.f ) );
-  uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
-  uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
-
-  s->buffer[y*s->width+x] = (0xFF<<24) + (r<<16) + (g<<8) + b;
+  
+  s->pixels[y*s->width+x] += colour;
+  s->samples = samples;
 }
 
 
