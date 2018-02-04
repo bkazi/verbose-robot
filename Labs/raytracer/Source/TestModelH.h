@@ -1,62 +1,15 @@
 #ifndef TEST_MODEL_CORNEL_BOX_H
 #define TEST_MODEL_CORNEL_BOX_H
 
-// Defines a simple test model: The Cornel Box
-
 #include <glm/glm.hpp>
 #include <vector>
-
-// Used to describe a triangular surface:
-class Triangle
-{
-public:
-	glm::vec4 v0;
-	glm::vec4 v1;
-	glm::vec4 v2;
-	glm::vec4 normal;
-	glm::vec3 color;
-	float shininess;
-	float Ks;
-	float Kd;
-	glm::vec3 e1;
-	glm::vec3 e2;
-
-	Triangle( glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 color, float shininess, float Ks, float Kd )
-		: v0(v0), v1(v1), v2(v2), color(color), shininess(shininess), Ks(Ks), Kd(Kd)
-	{
-		ComputeNormal();
-	}
-
-	void ComputeNormal()
-	{
-	  e1 = glm::vec3(v1 - v0);
-	  e2 = glm::vec3(v2 - v0);
-	  glm::vec3 normal3 = glm::normalize(glm::cross(e2, e1));
-	  normal = glm::vec4(normal3, 1.0f);
-	}
-};
-
-class Sphere
-{
-public:
-	glm::vec4 c;
-	float radius;
-	glm::vec3 color;
-	float shininess;
-	float Ks;
-	float Kd;
-
-	Sphere( glm::vec4 c, float radius, glm::vec3 color, float shininess, float Ks, float Kd)
-		: c(c), radius(radius), color(color), shininess(shininess), Ks(Ks), Kd(Kd) {
-			
-		}
-};
+#include "Objects.h"
 
 // Loads the Cornell Box. It is scaled to fill the volume:
 // -1 <= x <= +1
 // -1 <= y <= +1
 // -1 <= z <= +1
-void LoadTestModel(std::vector<Triangle>& triangles, std::vector<Sphere>& spheres)
+void LoadTestModel(std::vector<Shape *>& shapes)
 {
 	using glm::vec3;
 	using glm::vec4;
@@ -70,13 +23,11 @@ void LoadTestModel(std::vector<Triangle>& triangles, std::vector<Sphere>& sphere
 	vec3 purple( 0.75f, 0.15f, 0.75f );
 	vec3 white(  0.75f, 0.75f, 0.75f );
 
-	triangles.clear();
-	triangles.reserve( 5*2 );
-	
-	spheres.clear();
-	spheres.reserve(2);
-	spheres.push_back(Sphere(glm::vec4(-0.45, 0.6, 0.4, 1), 0.4f, white, 2, 0.04, 0.96));
-	spheres.push_back(Sphere(glm::vec4(0.6, 0.6, -0.4, 1), 0.3f, white, 2, 0.03, 0.97));
+	shapes.clear();
+	shapes.reserve(5*2 + 2);
+
+	shapes.push_back(new Sphere(glm::vec4(-0.45, 0.6, 0.4, 1), 0.4f, glm::vec3(0), white, 2, 0.04, 0.96));
+	shapes.push_back(new Sphere(glm::vec4(0.6, 0.6, -0.4, 1), 0.3f, glm::vec3(0), white, 2, 0.03, 0.97));
 
 	// ---------------------------------------------------------------------------
 	// Room
@@ -94,24 +45,24 @@ void LoadTestModel(std::vector<Triangle>& triangles, std::vector<Sphere>& sphere
 	vec4 H(0,L,L,1);
 
 	// Floor:
-	triangles.push_back( Triangle( C, B, A, white, 100, 0.25, 0.75 ) );
-	triangles.push_back( Triangle( C, D, B, white, 100, 0.25, 0.75 ) );
+	shapes.push_back(new Triangle(C, B, A, glm::vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(C, D, B, glm::vec3(0), white, 100, 0.25, 0.75));
 
 	// Left wall
-	triangles.push_back( Triangle( A, E, C, red, 2, 0.08, 0.92 ) );
-	triangles.push_back( Triangle( C, E, G, red, 2, 0.08, 0.92 ) );
+	shapes.push_back(new Triangle(A, E, C, glm::vec3(0), red, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(C, E, G, glm::vec3(0), red, 2, 0.08, 0.92));
 
 	// Right wall
-	triangles.push_back( Triangle( F, B, D, green, 2, 0.08, 0.92 ) );
-	triangles.push_back( Triangle( H, F, D, green, 2, 0.08, 0.92 ) );
+	shapes.push_back(new Triangle(F, B, D, glm::vec3(0), green, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(H, F, D, glm::vec3(0), green, 2, 0.08, 0.92));
 
 	// Ceiling
-	triangles.push_back( Triangle( E, F, G, white, 100, 0.25, 0.75 ) );
-	triangles.push_back( Triangle( F, H, G, white, 100, 0.25, 0.75 ) );
+	shapes.push_back(new Triangle(E, F, G, glm::vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(F, H, G, glm::vec3(0), white, 100, 0.25, 0.75));
 
 	// Back wall
-	triangles.push_back( Triangle( G, D, C, white, 100, 0.25, 0.75 ) );
-	triangles.push_back( Triangle( G, H, D, white, 100, 0.25, 0.75 ) );
+	shapes.push_back(new Triangle(G, D, C, glm::vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(G, H, D, glm::vec3(0), white, 100, 0.25, 0.75));
 
 	// ---------------------------------------------------------------------------
 	// Short block
@@ -127,24 +78,24 @@ void LoadTestModel(std::vector<Triangle>& triangles, std::vector<Sphere>& sphere
 	H = vec4( 82,165,225,1);
 
 	// // Front
-	// triangles.push_back( Triangle(E,B,A,red) );
-	// triangles.push_back( Triangle(E,F,B,red) );
+	// shapes.push_back( Triangle(E,B,A,red) );
+	// shapes.push_back( Triangle(E,F,B,red) );
 
 	// // Front
-	// triangles.push_back( Triangle(F,D,B,red) );
-	// triangles.push_back( Triangle(F,H,D,red) );
+	// shapes.push_back( Triangle(F,D,B,red) );
+	// shapes.push_back( Triangle(F,H,D,red) );
 
 	// // BACK
-	// triangles.push_back( Triangle(H,C,D,red) );
-	// triangles.push_back( Triangle(H,G,C,red) );
+	// shapes.push_back( Triangle(H,C,D,red) );
+	// shapes.push_back( Triangle(H,G,C,red) );
 
 	// // LEFT
-	// triangles.push_back( Triangle(G,E,C,red) );
-	// triangles.push_back( Triangle(E,A,C,red) );
+	// shapes.push_back( Triangle(G,E,C,red) );
+	// shapes.push_back( Triangle(E,A,C,red) );
 
 	// // TOP
-	// triangles.push_back( Triangle(G,F,E,red) );
-	// triangles.push_back( Triangle(G,H,F,red) );
+	// shapes.push_back( Triangle(G,F,E,red) );
+	// shapes.push_back( Triangle(G,H,F,red) );
 
 	// ---------------------------------------------------------------------------
 	// Tall block
@@ -160,52 +111,55 @@ void LoadTestModel(std::vector<Triangle>& triangles, std::vector<Sphere>& sphere
 	H = vec4(314,330,456,1);
 
 	// // Front
-	// triangles.push_back( Triangle(E,B,A,blue) );
-	// triangles.push_back( Triangle(E,F,B,blue) );
+	// shapes.push_back( Triangle(E,B,A,blue) );
+	// shapes.push_back( Triangle(E,F,B,blue) );
 
 	// // Front
-	// triangles.push_back( Triangle(F,D,B,blue) );
-	// triangles.push_back( Triangle(F,H,D,blue) );
+	// shapes.push_back( Triangle(F,D,B,blue) );
+	// shapes.push_back( Triangle(F,H,D,blue) );
 
 	// // BACK
-	// triangles.push_back( Triangle(H,C,D,blue) );
-	// triangles.push_back( Triangle(H,G,C,blue) );
+	// shapes.push_back( Triangle(H,C,D,blue) );
+	// shapes.push_back( Triangle(H,G,C,blue) );
 
 	// // LEFT
-	// triangles.push_back( Triangle(G,E,C,blue) );
-	// triangles.push_back( Triangle(E,A,C,blue) );
+	// shapes.push_back( Triangle(G,E,C,blue) );
+	// shapes.push_back( Triangle(E,A,C,blue) );
 
 	// // TOP
-	// triangles.push_back( Triangle(G,F,E,blue) );
-	// triangles.push_back( Triangle(G,H,F,blue) );
+	// shapes.push_back( Triangle(G,F,E,blue) );
+	// shapes.push_back( Triangle(G,H,F,blue) );
 
 
 	// ----------------------------------------------
 	// Scale to the volume [-1,1]^3
 
-	for( size_t i=0; i<triangles.size(); ++i )
-	{
-		triangles[i].v0 *= 2/L;
-		triangles[i].v1 *= 2/L;
-		triangles[i].v2 *= 2/L;
+	for(size_t i=0; i < shapes.size(); ++i) {
 
-		triangles[i].v0 -= vec4(1,1,1,1);
-		triangles[i].v1 -= vec4(1,1,1,1);
-		triangles[i].v2 -= vec4(1,1,1,1);
+		Triangle *tri;
+		if ((tri = dynamic_cast<Triangle *>(shapes[i]))) {
+			tri->v0 *= 2/L;
+			tri->v1 *= 2/L;
+			tri->v2 *= 2/L;
 
-		triangles[i].v0.x *= -1;
-		triangles[i].v1.x *= -1;
-		triangles[i].v2.x *= -1;
+			tri->v0 -= vec4(1,1,1,1);
+			tri->v1 -= vec4(1,1,1,1);
+			tri->v2 -= vec4(1,1,1,1);
 
-		triangles[i].v0.y *= -1;
-		triangles[i].v1.y *= -1;
-		triangles[i].v2.y *= -1;
+			tri->v0.x *= -1;
+			tri->v1.x *= -1;
+			tri->v2.x *= -1;
 
-		triangles[i].v0.w = 1.0;
-		triangles[i].v1.w = 1.0;
-		triangles[i].v2.w = 1.0;
-		
-		triangles[i].ComputeNormal();
+			tri->v0.y *= -1;
+			tri->v1.y *= -1;
+			tri->v2.y *= -1;
+
+			tri->v0.w = 1.0;
+			tri->v1.w = 1.0;
+			tri->v2.w = 1.0;
+			
+			tri->ComputeNormal();
+		}
 	}
 }
 
