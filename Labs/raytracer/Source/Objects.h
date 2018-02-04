@@ -24,6 +24,7 @@ struct Shape {
     }
     virtual vec4 randomPoint() {return vec4();};
     virtual vec4 getNormal(const vec4 &p) {return vec4();};
+    virtual bool isLight() {return emit.x > 0 || emit.y > 0 || emit.z > 0;}
 };
 
 class Triangle : public Shape {
@@ -40,6 +41,16 @@ public:
 
     vec4 getNormal(const vec4 &p) {
         return normal;
+    }
+
+    vec4 randomPoint() {
+        while (1) {
+            float u = rand() / (float) RAND_MAX;
+            float v = rand() / (float) RAND_MAX;
+            if (u >= 0 && v >= 0 && u + v <= 1) {
+                return v0 + vec4(u * e1 + v * e2, 1);
+            }
+        }
     }
 
     float intersects(const vec4 start, const vec4 direction) {

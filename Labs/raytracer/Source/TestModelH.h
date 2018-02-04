@@ -24,10 +24,10 @@ void LoadTestModel(std::vector<Shape *>& shapes)
 	vec3 white(  0.75f, 0.75f, 0.75f );
 
 	shapes.clear();
-	shapes.reserve(5*2 + 2);
+	shapes.reserve(6*2 + 2);
 
-	shapes.push_back(new Sphere(glm::vec4(-0.45, 0.6, 0.4, 1), 0.4f, glm::vec3(0), white, 2, 0.04, 0.96));
-	shapes.push_back(new Sphere(glm::vec4(0.6, 0.6, -0.4, 1), 0.3f, glm::vec3(0), white, 2, 0.03, 0.97));
+	shapes.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f, vec3(0), white, 2, 0.04, 0.96));
+	shapes.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, vec3(0), white, 2, 0.03, 0.97));
 
 	// ---------------------------------------------------------------------------
 	// Room
@@ -44,25 +44,29 @@ void LoadTestModel(std::vector<Shape *>& shapes)
 	vec4 G(L,L,L,1);
 	vec4 H(0,L,L,1);
 
+	//Light
+	shapes.push_back(new Triangle(vec4(3*L/4, L, L/4, 1), vec4(L/4, L, L/4, 1), vec4(3*L/4, L, 3*L/4, 1), 14.0f * vec3(1), vec3(0), 1, 0.1, 0.9));
+	shapes.push_back(new Triangle(vec4(L/4, L, L/4, 1), vec4(L/4, L, 3*L/4, 1), vec4(3*L/4, L, 3*L/4, 1), 14.0f * vec3(1), vec3(0), 1, 0.1, 0.9));
+
 	// Floor:
-	shapes.push_back(new Triangle(C, B, A, glm::vec3(0), white, 100, 0.25, 0.75));
-	shapes.push_back(new Triangle(C, D, B, glm::vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(C, B, A, vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(C, D, B, vec3(0), white, 100, 0.25, 0.75));
 
 	// Left wall
-	shapes.push_back(new Triangle(A, E, C, glm::vec3(0), red, 2, 0.08, 0.92));
-	shapes.push_back(new Triangle(C, E, G, glm::vec3(0), red, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(A, E, C, vec3(0), red, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(C, E, G, vec3(0), red, 2, 0.08, 0.92));
 
 	// Right wall
-	shapes.push_back(new Triangle(F, B, D, glm::vec3(0), green, 2, 0.08, 0.92));
-	shapes.push_back(new Triangle(H, F, D, glm::vec3(0), green, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(F, B, D, vec3(0), green, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(H, F, D, vec3(0), green, 2, 0.08, 0.92));
 
 	// Ceiling
-	shapes.push_back(new Triangle(E, F, G, glm::vec3(0), white, 100, 0.25, 0.75));
-	shapes.push_back(new Triangle(F, H, G, glm::vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(E, F, G, vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(F, H, G, vec3(0), white, 100, 0.25, 0.75));
 
 	// Back wall
-	shapes.push_back(new Triangle(G, D, C, glm::vec3(0), white, 100, 0.25, 0.75));
-	shapes.push_back(new Triangle(G, H, D, glm::vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(G, D, C, vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(G, H, D, vec3(0), white, 100, 0.25, 0.75));
 
 	// ---------------------------------------------------------------------------
 	// Short block

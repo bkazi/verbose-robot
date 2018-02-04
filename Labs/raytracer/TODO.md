@@ -1,6 +1,6 @@
 - [x] Spheres
 - [x] Object intersect functions
-- [ ] Mesh/Area Lights
-- [ ] Russian Roulette bounces
+- [x] Mesh/Area Lights
+- [x] Russian Roulette bounces
 - [ ] BVH
 - [ ] Indirect Specular (BRDF?)

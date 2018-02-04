@@ -22,6 +22,8 @@ using glm::vec4;
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 0
 #define BOUNCES 3
+#define MIN_BOUNCES 4
+#define MAX_BOUNCES 20
 #define NUM_SAMPLES 2
 #define LIVE
 
@@ -54,6 +56,8 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce, bool 
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
+vec3 Light(const vec4 start, const vec4 dir, int bounce);
+float max3(vec3);
 
 float samples = 0;
 vector<Shape *> shapes;
@@ -111,24 +115,14 @@ void Draw(screen *screen, Camera camera) {
       tempDepth = 0;
 #if NUM_RAYS <= 1
       vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
-      if (ClosestIntersection(camera.position, direction, intersection)) {
-        vec3 tint = shapes[intersection.shapeIndex]->color;
-        float Ks = shapes[intersection.shapeIndex]->Ks;
-        float Kd = shapes[intersection.shapeIndex]->Kd;
-        color += (Kd * DirectLight(intersection, direction, false) + IndirectLight(intersection, direction, BOUNCES, false)) * tint + Ks * DirectLight(intersection, direction, true);
-        tempDepth += intersection.distance;
-      }
+      color += Light(camera.position, direction, 0);
+      tempDepth += intersection.distance;
 #else
       for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
         for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
           vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera.focalLength) * camera.R, 1));
-            if (ClosestIntersection(camera.position, direction, intersection)) {
-            vec3 tint = shapes[intersection.shapeIndex]->color;
-            float Ks = shapes[intersection.shapeIndex]->Ks;
-            float Kd = shapes[intersection.shapeIndex]->Kd;
-            color += (Kd * DirectLight(intersection, direction, false) + IndirectLight(intersection, direction, BOUNCES, false)) * tint + Ks * DirectLight(intersection, direction, true);
-            tempDepth += intersection.distance;
-          }
+          color += Light(camera.position, direction, 0);
+          tempDepth += intersection.distance;
         }
       }
       color /= NUM_RAYS * NUM_RAYS;
@@ -303,6 +297,62 @@ vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec) {
   }
 }
 
+vec3 Light(const vec4 start, const vec4 dir, int bounce) {
+  Intersection intersection;
+  if (ClosestIntersection(start, dir, intersection)) {
+
+    Shape *obj = shapes[intersection.shapeIndex];
+    // Russian roulette termination
+    float U = rand() / (float) RAND_MAX;
+    if (bounce > MIN_BOUNCES && (bounce > MAX_BOUNCES || U > max3(obj->color))) {
+      // terminate
+      return vec3(0);
+    }
+    
+    vec4 hitPos = intersection.position;
+    vec4 normal = obj->getNormal(hitPos);
+
+    // Direct Light
+    vec3 directDiffuseLight = vec3(0);
+    vec3 directSpecularLight = vec3(0);
+    for (Shape *light : shapes) {
+      if (light->isLight()) {
+        vec4 lightPos = light->randomPoint();
+        float lightDist = glm::distance(lightPos, hitPos);
+        vec4 lightDir = (lightPos - hitPos) / lightDist;
+        if (bounce == 0) {
+          vec4 reflected = glm::reflect(lightDir, normal);
+          directSpecularLight += (light->emit * max(powf(glm::dot(reflected, dir), obj->shininess), 0.0f)) / (float) (4 * M_PI * powf(lightDist, 2));
+        }
+        Intersection lightIntersection;
+        if (ClosestIntersection(hitPos, lightDir, lightIntersection)) {
+          if (light == obj) {
+            directDiffuseLight += light->emit * max(glm::dot(lightDir, normal), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
+          }
+        }
+      }
+    }
+
+    // Indirect Light
+    vec3 Nt, Nb;
+    createCoordinateSystem(vec3(normal), Nt, Nb);
+    float r1 = distribution(generator);
+    float r2 = distribution(generator);
+    vec3 sample = uniformSampleHemisphere(r1, r2); 
+    vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
+    vec4 rayDir = vec4(sampleWorld, 1);
+    vec3 indirectLight = Light(hitPos, rayDir, bounce + 1);
+
+
+    // if (bounce == 0) {
+      return obj->emit + obj->Kd * obj->color * (directDiffuseLight + indirectLight) + obj->Ks * directSpecularLight;
+    // } else {
+      // return obj->color * (directLight + indirectLight);
+    // }
+  }
+  return vec3(0);
+}
+
 mat3 CalcRotationMatrix(float x, float y, float z) {
   mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cosf(x), sinf(x)), vec3(0, -sinf(x), cosf(x)));
   mat3 Ry = mat3(vec3(cosf(y), 0, -sinf(y)), vec3(0, 1, 0), vec3(sinf(y), 0, cosf(y)));
@@ -324,4 +374,8 @@ void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
   else 
       Nt = glm::normalize(vec3(0, -N.z, N.y)); 
   Nb = glm::cross(N, Nt); 
-} 
+}
+
+float max3(vec3 v) {
+  return max(v.x, max(v.y, v.z));
+}
