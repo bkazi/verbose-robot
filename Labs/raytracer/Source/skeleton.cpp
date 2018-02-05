@@ -28,7 +28,7 @@ using glm::vec4;
 #define NUM_RAYS 0
 #define BOUNCES 3
 #define MIN_BOUNCES 4
-#define MAX_BOUNCES 20
+#define MAX_BOUNCES 10
 #define NUM_SAMPLES 2
 #define LIVE
 
@@ -70,7 +70,8 @@ vector<Shape *> shapes;
 int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
-  LoadTestModel(shapes, "/home/gregory/pub/model-triangulated.obj");
+  LoadTestModel(shapes);
+  LoadModel(shapes, "/home/gregory/pug/model-triangulated.obj");
 
   Camera camera = {
     SCREEN_HEIGHT,
@@ -350,7 +351,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
 
 
     // if (bounce == 0) {
-      return obj->emit + obj->Kd * obj->color * (directDiffuseLight + indirectLight) + obj->Ks * directSpecularLight;
+      return obj->emit + obj->Kd * obj->color * (directDiffuseLight + indirectLight) /*+ obj->Ks * directSpecularLight*/;
     // } else {
       // return obj->color * (directLight + indirectLight);
     // }
@@ -397,7 +398,7 @@ vector<string> tokenize(string str, char delim) {
   return toks;
 }
  
-vector<Triangle> makeTriangles(vector<string> facePoints, vector<vec3> vertices) {
+vector<Shape *> makeTriangles(vector<string> facePoints, vector<vec3> vertices) {
   vector<int> vertexIds;
   for (uint i = 0; i < facePoints.size(); i++) {
     vector<string> comps = tokenize(facePoints[i].c_str(), '/');
@@ -406,43 +407,37 @@ vector<Triangle> makeTriangles(vector<string> facePoints, vector<vec3> vertices)
     vertexIds.push_back(index);
   }
 
-  vector<Triangle> triangles;
+  vector<Shape *> triangles;
   if (vertexIds.size() == 3) {
     triangles.push_back(
-      Triangle(
+      new Triangle(
         vec4(vertices[vertexIds[0]], 1),
-        vec4(vertices[vertexIds[1]], 1),
         vec4(vertices[vertexIds[2]], 1),
+        vec4(vertices[vertexIds[1]], 1),
         vec3(0),
-        vec3(1),
-        2,
-        0.04,
-        0.96
+        vec3(1, 0, 1),
+        100, 0.25, 0.75
       )
     );
   } else if (vertexIds.size() == 4) {
     triangles.push_back(
-      Triangle(
+      new Triangle(
         vec4(vertices[vertexIds[0]], 1),
-        vec4(vertices[vertexIds[1]], 1),
         vec4(vertices[vertexIds[2]], 1),
+        vec4(vertices[vertexIds[1]], 1),
         vec3(0),
-        vec3(1),
-        2,
-        0.04,
-        0.96
+        vec3(1, 0, 1),
+        100, 0.25, 0.75
       )
     );
     triangles.push_back(
-      Triangle(
+      new Triangle(
         vec4(vertices[vertexIds[2]], 1),
-        vec4(vertices[vertexIds[3]], 1),
         vec4(vertices[vertexIds[1]], 1),
+        vec4(vertices[vertexIds[3]], 1),
         vec3(0),
-        vec3(1),
-        2,
-        0.04,
-        0.96
+        vec3(1, 0, 1),
+        100, 0.25, 0.75
       )
     );
   } else {
@@ -458,6 +453,7 @@ string trim(const string& str) {
 }
 
 void LoadModel(std::vector<Shape *>& shapes, string path) {
+
   // See here: https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html
   vector<vec3> vertices;
   vector<vec2> texture;
@@ -496,8 +492,8 @@ void LoadModel(std::vector<Shape *>& shapes, string path) {
       string faceDeets = trim(line.substr(2));
       vector<string> facePoints = tokenize(faceDeets, ' ');
       
-      vector<Triangle> tris = makeTriangles(facePoints, vertices);
-      triangles.insert(triangles.end(), tris.begin(), tris.end());
+      vector<Shape *> tris = makeTriangles(facePoints, vertices);
+      shapes.insert(shapes.end(), tris.begin(), tris.end());
     }
   }
 }
