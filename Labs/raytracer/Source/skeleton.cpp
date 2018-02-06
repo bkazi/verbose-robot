@@ -75,7 +75,8 @@ int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   LoadTestModel(shapes);
-  LoadModel(shapes, argv[1]);
+  const string path = argv[1];
+  LoadModel(shapes, path.c_str());
 
   Camera camera = {
     SCREEN_HEIGHT,
@@ -401,9 +402,7 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
     &shapes,
     &materials,
     &error,
-    path,
-    NULL,
-    true
+    path
   );
   if (!error.empty()) {
     cerr << error << endl;
