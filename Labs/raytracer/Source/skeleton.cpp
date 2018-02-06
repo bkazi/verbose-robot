@@ -71,7 +71,7 @@ vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, int bounce);
 float max3(vec3);
-void LoadModel(vector<Shape *> &scene, string path);
+void LoadModel(vector<Shape *> &scene, const char *path);
 
 float samples = 0;
 vector<Shape *> shapes;
