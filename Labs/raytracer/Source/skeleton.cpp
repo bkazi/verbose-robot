@@ -6,10 +6,6 @@
 #include <limits.h>
 #include <math.h>
 #include <algorithm>
-#include <fstream>
-#include <string>
-#include <sstream>
-#include <iterator>
 #include <glm/glm.hpp>
 #include <SDL.h>
 #include "SDLauxiliary.h"
@@ -398,7 +394,7 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
   attrib_t attrib;
   vector<shape_t> shapes;
   vector<material_t> materials;
-  string error;
+  std::string error;
   // NB: Lib automatically triangulises -- can be disabled, but is default true
   bool ret = tinyobj::LoadObj(
     &attrib,
