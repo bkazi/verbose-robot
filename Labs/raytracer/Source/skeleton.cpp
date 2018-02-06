@@ -23,6 +23,11 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 using glm::dot;
+using tinyobj::attrib_t;
+using tinyobj::shape_t;
+using tinyobj::material_t;
+using tinyobj::real_t;
+using tinyobj::index_t;
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #define SCREEN_WIDTH 256
@@ -390,9 +395,9 @@ float max3(vec3 v) {
 }
 
 void LoadModel(vector<Shape *> &scene, const char *path) {
-  tinyobj::attrib_t attrib;
-  vector<tinyobj::shape_t> shapes;
-  vector<tinyobj::material_t> materials;
+  attrib_t attrib;
+  vector<shape_t> shapes;
+  vector<material_t> materials;
   string error;
   // NB: Lib automatically triangulises -- can be disabled, but is default true
   bool ret = tinyobj::LoadObj(
@@ -424,19 +429,19 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
       // For each vertex
       for (size_t v = 0; v < fv; v++) {
         // access to vertex
-        tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+        index_t idx = shapes[s].mesh.indices[index_offset + v];
 
-        tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
-        tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
-        tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
+        real_t vx = attrib.vertices[3*idx.vertex_index+0];
+        real_t vy = attrib.vertices[3*idx.vertex_index+1];
+        real_t vz = attrib.vertices[3*idx.vertex_index+2];
         verticies.push_back(vec4(vx, vy, vz, 1));
 
-        tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
-        tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
-        tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+        real_t nx = attrib.normals[3*idx.normal_index+0];
+        real_t ny = attrib.normals[3*idx.normal_index+1];
+        real_t nz = attrib.normals[3*idx.normal_index+2];
 
-        tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
-        tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+        real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
+        real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
 
         // Optional: vertex colors
         // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
