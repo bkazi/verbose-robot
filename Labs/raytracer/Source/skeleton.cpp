@@ -14,6 +14,7 @@
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
+#include "tiny_obj_loader.h"
 
 using namespace std;
 using glm::mat3;
@@ -21,7 +22,9 @@ using glm::mat4;
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
+using glm::dot;
 
+#define TINYOBJLOADER_IMPLEMENTATION
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
@@ -63,7 +66,7 @@ vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, int bounce);
 float max3(vec3);
-void LoadModel(std::vector<Shape *>& shapes, string path);
+void LoadModel(vector<Shape *> &scene, string path);
 
 float samples = 0;
 vector<Shape *> shapes;
@@ -71,7 +74,7 @@ int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   LoadTestModel(shapes);
-  LoadModel(shapes, "/home/gregory/pug/model-triangulated.obj");
+  LoadModel(shapes, argv[1]);
 
   Camera camera = {
     SCREEN_HEIGHT,
@@ -157,7 +160,7 @@ void Update(Camera &camera, screen *screen) {
   int t2 = SDL_GetTicks();
   float dt = float(t2 - t);
   t = t2;
-  cout << "Render time: " << dt << " ms.\n";
+  cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
   camera.movement = vec3(0);
@@ -386,114 +389,75 @@ float max3(vec3 v) {
   return max(v.x, max(v.y, v.z));
 }
 
-vector<string> tokenize(string str, char delim) {
-  std::istringstream ss(str);
-	std::string token;
-
-	vector<string> toks;
-	while(std::getline(ss, token, delim)) {
-		toks.push_back(token);
-	}
-
-  return toks;
-}
- 
-vector<Shape *> makeTriangles(vector<string> facePoints, vector<vec3> vertices) {
-  vector<int> vertexIds;
-  for (uint i = 0; i < facePoints.size(); i++) {
-    vector<string> comps = tokenize(facePoints[i].c_str(), '/');
-    int parsedIndex = stoi(comps[0]);
-    int index = parsedIndex < 0 ? vertices.size() + parsedIndex : parsedIndex;
-    vertexIds.push_back(index);
+void LoadModel(vector<Shape *> &scene, const char *path) {
+  tinyobj::attrib_t attrib;
+  vector<tinyobj::shape_t> shapes;
+  vector<tinyobj::material_t> materials;
+  string error;
+  // NB: Lib automatically triangulises -- can be disabled, but is default true
+  bool ret = tinyobj::LoadObj(
+    &attrib,
+    &shapes,
+    &materials,
+    &error,
+    path,
+    NULL,
+    true
+  );
+  if (!error.empty()) {
+    cerr << error << endl;
   }
-
-  vector<Shape *> triangles;
-  if (vertexIds.size() == 3) {
-    triangles.push_back(
-      new Triangle(
-        vec4(vertices[vertexIds[0]], 1),
-        vec4(vertices[vertexIds[2]], 1),
-        vec4(vertices[vertexIds[1]], 1),
-        vec3(0),
-        vec3(1, 0, 1),
-        100, 0.25, 0.75
-      )
-    );
-  } else if (vertexIds.size() == 4) {
-    triangles.push_back(
-      new Triangle(
-        vec4(vertices[vertexIds[0]], 1),
-        vec4(vertices[vertexIds[2]], 1),
-        vec4(vertices[vertexIds[1]], 1),
-        vec3(0),
-        vec3(1, 0, 1),
-        100, 0.25, 0.75
-      )
-    );
-    triangles.push_back(
-      new Triangle(
-        vec4(vertices[vertexIds[2]], 1),
-        vec4(vertices[vertexIds[1]], 1),
-        vec4(vertices[vertexIds[3]], 1),
-        vec3(0),
-        vec3(1, 0, 1),
-        100, 0.25, 0.75
-      )
-    );
-  } else {
-    throw 5; // 5 or more vertices on face
-  }
-  return triangles;
-}
-
-string trim(const string& str) {
-  size_t first = str.find_first_not_of(" \t\r\n");
-  size_t last = str.find_last_not_of(" \t\r\n");
-  return str.substr(first, (last-first+1));
-}
-
-void LoadModel(std::vector<Shape *>& shapes, string path) {
-
-  // See here: https://www.cs.cmu.edu/~mbz/personal/graphics/obj.html
-  vector<vec3> vertices;
-  vector<vec2> texture;
-  vector<vec3> normals;
-
-  ifstream objFile (path);
-  if (!objFile) {
-    cerr << "Cannot open " << path << std::endl;
+  if (!ret) {
     exit(1);
   }
 
-  string line;
-  while (getline(objFile, line)) {
-    if (line.substr(0, 2) == "v ") {
-      istringstream v(trim(line.substr(2)));
-      vec3 vert;
-      float x, y, z;
-      v >> x >> y >> z;
-      vert = vec3(x,y,z);
-      vertices.push_back(vert);
-    } else if (line.substr(0, 2) == "vt") {
-      istringstream vt(trim(line.substr(3)));
-      vec2 tex;
-      int u, v;
-      vt >> u >> v;
-      tex = vec2(u, v);
-      texture.push_back(tex);
-    } else if (line.substr(0, 2) == "vn") {
-      istringstream vn(trim(line.substr(3)));
-      vec3 norm;
-      int x, y, z;
-      vn >> x >> y >> z;
-      norm = vec3(x, y, z);
-      normals.push_back(norm);
-    } else if(line.substr(0, 2) == "f ") {
-      string faceDeets = trim(line.substr(2));
-      vector<string> facePoints = tokenize(faceDeets, ' ');
-      
-      vector<Shape *> tris = makeTriangles(facePoints, vertices);
-      shapes.insert(shapes.end(), tris.begin(), tris.end());
+  // For each shape?
+  for (size_t s = 0; s < shapes.size(); s++) {
+    size_t index_offset = 0;
+
+    // For each face
+    for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+      int fv = shapes[s].mesh.num_face_vertices[f];
+
+      vector<vec4> verticies;
+
+      // For each vertex
+      for (size_t v = 0; v < fv; v++) {
+        // access to vertex
+        tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+
+        tinyobj::real_t vx = attrib.vertices[3*idx.vertex_index+0];
+        tinyobj::real_t vy = attrib.vertices[3*idx.vertex_index+1];
+        tinyobj::real_t vz = attrib.vertices[3*idx.vertex_index+2];
+        verticies.push_back(vec4(vx, vy, vz, 1));
+
+        tinyobj::real_t nx = attrib.normals[3*idx.normal_index+0];
+        tinyobj::real_t ny = attrib.normals[3*idx.normal_index+1];
+        tinyobj::real_t nz = attrib.normals[3*idx.normal_index+2];
+
+        tinyobj::real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
+        tinyobj::real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+
+        // Optional: vertex colors
+        // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
+        // tinyobj::real_t green = attrib.colors[3*idx.vertex_index+1];
+        // tinyobj::real_t blue = attrib.colors[3*idx.vertex_index+2];
+      }
+      index_offset += fv;
+
+      // per-face material
+      tinyobj::material_t material = materials[shapes[s].mesh.material_ids[f]];
+
+      scene.push_back(new Triangle(
+        verticies[0],
+        verticies[1],
+        verticies[2],
+        vec3(material.emission[0], material.emission[1], material.emission[2]),
+        vec3(1, 0, 0),
+        material.shininess,
+        dot(vec3(1), vec3(material.specular[0], material.specular[1], material.specular[2])),
+        dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]))
+      ));
     }
   }
 }
