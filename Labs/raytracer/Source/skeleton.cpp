@@ -10,6 +10,8 @@
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
+
+#define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
 using namespace std;
@@ -25,9 +27,8 @@ using tinyobj::material_t;
 using tinyobj::real_t;
 using tinyobj::index_t;
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#define SCREEN_WIDTH 256
-#define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 128
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 0
 #define BOUNCES 3
@@ -396,13 +397,15 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
   vector<shape_t> shapes;
   vector<material_t> materials;
   std::string error;
+  std::string pathString = static_cast<string>(path);
   // NB: Lib automatically triangulises -- can be disabled, but is default true
   bool ret = tinyobj::LoadObj(
     &attrib,
     &shapes,
     &materials,
     &error,
-    path
+    path,
+    pathString.substr(0, pathString.find_last_of('/') + 1).c_str()
   );
   if (!error.empty()) {
     cerr << error << endl;
@@ -420,9 +423,13 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
       int fv = shapes[s].mesh.num_face_vertices[f];
 
       vector<vec4> verticies;
+      vector<vec4> normals;
+      vector<vec2> textures;
+      vector<vec3> colours;
 
       // For each vertex
       for (size_t v = 0; v < fv; v++) {
+
         // access to vertex
         index_t idx = shapes[s].mesh.indices[index_offset + v];
 
@@ -434,26 +441,31 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
         real_t nx = attrib.normals[3*idx.normal_index+0];
         real_t ny = attrib.normals[3*idx.normal_index+1];
         real_t nz = attrib.normals[3*idx.normal_index+2];
+        normals.push_back(vec4(nx, ny, nz, 1));
 
         real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
         real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+        textures.push_back(vec2(tx, ty));
 
         // Optional: vertex colors
-        // tinyobj::real_t red = attrib.colors[3*idx.vertex_index+0];
-        // tinyobj::real_t green = attrib.colors[3*idx.vertex_index+1];
-        // tinyobj::real_t blue = attrib.colors[3*idx.vertex_index+2];
+        real_t red = attrib.colors[3*idx.vertex_index+0];
+        real_t green = attrib.colors[3*idx.vertex_index+1];
+        real_t blue = attrib.colors[3*idx.vertex_index+2];
+        colours.push_back(vec3(red, green, blue));
       }
       index_offset += fv;
 
       // per-face material
       tinyobj::material_t material = materials[shapes[s].mesh.material_ids[f]];
 
+      vec3 avgColour = (colours[0] + colours[1] + colours[2])/3.0f;
+
       scene.push_back(new Triangle(
         verticies[0],
-        verticies[1],
         verticies[2],
+        verticies[1],
         vec3(material.emission[0], material.emission[1], material.emission[2]),
-        vec3(1, 0, 0),
+        vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]),
         material.shininess,
         dot(vec3(1), vec3(material.specular[0], material.specular[1], material.specular[2])),
         dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]))
