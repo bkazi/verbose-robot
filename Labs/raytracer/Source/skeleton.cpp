@@ -27,8 +27,8 @@ using tinyobj::material_t;
 using tinyobj::real_t;
 using tinyobj::index_t;
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 128
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 0
 #define BOUNCES 3
@@ -458,8 +458,6 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
       // per-face material
       tinyobj::material_t material = materials[shapes[s].mesh.material_ids[f]];
 
-      vec3 avgColour = (colours[0] + colours[1] + colours[2])/3.0f;
-
       scene.push_back(new Triangle(
         verticies[0],
         verticies[2],
@@ -467,9 +465,9 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
         vec3(material.emission[0], material.emission[1], material.emission[2]),
         vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]),
         material.shininess,
-        dot(vec3(1), vec3(material.specular[0], material.specular[1], material.specular[2])),
-        dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]))
-      ));
+        dot(vec3(1), vec3(material.specular[0], material.specular[1], material.specular[2])) / 3.0f,
+        dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2])) / 3.0f
+      )); 
     }
   }
 }
