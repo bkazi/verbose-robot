@@ -4,3 +4,4 @@
 - [x] Russian Roulette bounces
 - [ ] BVH
 - [ ] Indirect Specular (BRDF?)
+- [ ] OpenMP devices 

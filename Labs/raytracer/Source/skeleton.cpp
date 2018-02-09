@@ -114,46 +114,26 @@ int main(int argc, char *argv[]) {
 void Draw(screen *screen, Camera camera) {
   samples++;
 
-  float depth[SCREEN_WIDTH][SCREEN_HEIGHT];
-  float tempDepth;
-  float maxDepth = -1;
-
-  Intersection intersection;
   int x, y;
-  #pragma omp parallel for private(x, y, intersection, tempDepth, maxDepth)
+  #pragma omp parallel for private(x, y)
   for (y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
     for (x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec3 color = vec3(0);
-      tempDepth = 0;
 #if NUM_RAYS <= 1
       vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
       color += Light(camera.position, direction, 0);
-      tempDepth += intersection.distance;
 #else
       for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
         for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
           vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera.focalLength) * camera.R, 1));
           color += Light(camera.position, direction, 0);
-          tempDepth += intersection.distance;
         }
       }
       color /= NUM_RAYS * NUM_RAYS;
-      tempDepth /= NUM_RAYS * NUM_RAYS;
 #endif
-      depth[x + SCREEN_WIDTH/2][y + SCREEN_HEIGHT/2] = tempDepth;
-      if (tempDepth > maxDepth) {
-        maxDepth = tempDepth;
-      }
       PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color, samples);
     }
   }
-
-  // for (int y = 0; y < SCREEN_HEIGHT; y++) {
-  //   for (int x = 0; x < SCREEN_WIDTH; x++) {
-  //     if (depth[x][y] == 0) PutPixelSDL(screen, x, y, vec3(0));
-  //     PutPixelSDL(screen, x, y, vec3(1 - (depth[x][y] / maxDepth)));
-  //   }
-  // }
 }
 
 /*Place updates of parameters here*/
@@ -247,71 +227,9 @@ bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection
 std::default_random_engine generator; 
 std::uniform_real_distribution<float> distribution(0, 1);
 
-vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce, bool spec) {
-#if BOUNCES == 0
-    return indirectLighting;
-#else
-  if (bounce == 0) {
-    return vec3(0);
-  } else {
-    vec4 n = shapes[intersection.shapeIndex]->getNormal(intersection.position);
-    vec3 light = vec3(0);
-    vec3 Nt, Nb;
-    createCoordinateSystem(vec3(n), Nt, Nb);
-    int count = 0;
-    for (int i = 0; i < NUM_SAMPLES; i++) {
-      if (rand() / RAND_MAX > 0.5) continue;
-      else count++;
-      Intersection reflectIntersection;
-      float r1 = distribution(generator);
-      float r2 = distribution(generator);
-      vec3 sample = uniformSampleHemisphere(r1, r2); 
-      vec3 sampleWorld;
-      if (spec) {
-        sampleWorld = vec3(mat3(Nb, vec3(glm::reflect(dir, n)), Nt) * sample);
-        vec3 P = IndirectLight(reflectIntersection, vec4(sampleWorld, 1), bounce - 1, spec);
-        light += (P * max(glm::dot(vec4(sampleWorld, 1), dir), 0.0f));
-      } else {
-        sampleWorld = vec3(mat3(Nb, vec3(n), Nt) * sample);
-        vec4 rayDir = vec4(sampleWorld, 1);
-        if (ClosestIntersection(intersection.position + (rayDir * 1e-4f), rayDir, reflectIntersection)) {
-          vec3 tint = shapes[reflectIntersection.shapeIndex]->color;
-          vec3 P = DirectLight(intersection, dir, false) + IndirectLight(reflectIntersection, rayDir, bounce - 1, spec);
-          light += (P * max(glm::dot(rayDir, n), 0.0f)) * tint;
-        }
-      }
-    }
-    light /= count;;
-    return light;
-  }
-#endif
-}
-
-vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec) {
-  vec3 P = lightColor;
-  vec4 n = shapes[intersection.shapeIndex]->getNormal(intersection.position);
-  vec4 r = lightPos - intersection.position;
-  float rL = glm::length(r);
-  vec4 rN = r / rL;
-  Intersection shadowIntersection;
-  if (ClosestIntersection(intersection.position + (rN * 1e-4f), rN, shadowIntersection)) {
-    float distance = glm::distance(intersection.position, shadowIntersection.position);
-    if (distance < rL) {
-      return vec3(0);
-    }
-  }
-  if (spec) {
-    vec4 reflected = glm::reflect(rN, n);
-    float shininess = shapes[intersection.shapeIndex]->shininess;
-    return (P * max(powf(glm::dot(reflected, dir), shininess), 0.0f)) / (float) (4 * M_PI * powf(rL, 2));
-  } else {
-    return (P * max(glm::dot(rN, n), 0.0f)) / (float) (4 * M_PI * powf(rL, 2));
-  }
-}
-
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
-  if (ClosestIntersection(start, dir, intersection)) {
+  if (ClosestIntersection(start + start * 1e-4f, dir, intersection)) {
 
     Shape *obj = shapes[intersection.shapeIndex];
     // Russian roulette termination
@@ -327,18 +245,18 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     // Direct Light
     vec3 directDiffuseLight = vec3(0);
     vec3 directSpecularLight = vec3(0);
+
     for (Shape *light : shapes) {
       if (light->isLight()) {
         vec4 lightPos = light->randomPoint();
-        float lightDist = glm::distance(lightPos, hitPos);
-        vec4 lightDir = (lightPos - hitPos) / lightDist;
-        if (bounce == 0) {
-          vec4 reflected = glm::reflect(lightDir, normal);
-          directSpecularLight += (light->emit * max(powf(glm::dot(reflected, dir), obj->shininess), 0.0f)) / (float) (4 * M_PI * powf(lightDist, 2));
-        }
+        vec4 lightVec = lightPos - hitPos;
+        float lightDist = glm::length(lightVec);
+        vec4 lightDir = lightVec / lightDist;
         Intersection lightIntersection;
-        if (ClosestIntersection(hitPos, lightDir, lightIntersection)) {
-          if (light == obj) {
+        if (ClosestIntersection(hitPos + lightDir * 1e-4f, lightDir, lightIntersection)) {
+          if (light == shapes[lightIntersection.shapeIndex]) {
+            vec4 reflected = glm::reflect(lightDir, normal);
+            directSpecularLight += light->emit * max(powf(glm::dot(reflected, dir), obj->shininess), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
             directDiffuseLight += light->emit * max(glm::dot(lightDir, normal), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
           }
         }
@@ -346,6 +264,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     }
 
     // Indirect Light
+    vec3 indirectLight = vec3(0);
     vec3 Nt, Nb;
     createCoordinateSystem(vec3(normal), Nt, Nb);
     float r1 = distribution(generator);
@@ -353,14 +272,13 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     vec3 sample = uniformSampleHemisphere(r1, r2); 
     vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
     vec4 rayDir = vec4(sampleWorld, 1);
-    vec3 indirectLight = Light(hitPos, rayDir, bounce + 1);
+    indirectLight += obj->Kd * Light(hitPos, rayDir, bounce + 1);
 
-
-    // if (bounce == 0) {
-      return obj->emit + obj->Kd * obj->color * (directDiffuseLight + indirectLight) /*+ obj->Ks * directSpecularLight*/;
-    // } else {
-      // return obj->color * (directLight + indirectLight);
-    // }
+    if (bounce == 0) {
+      return obj->emit + obj->color * (obj->Kd * directDiffuseLight + obj->Ka * indirectLight + obj->Ks * directSpecularLight);
+    } else {
+      return obj->color * (obj->Kd * directDiffuseLight + obj->Ka * indirectLight);
+    }
   }
   return vec3(0);
 }
