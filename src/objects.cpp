@@ -6,19 +6,19 @@ using glm::vec4;
 using glm::determinant;
 
 /* SHAPE CLASS IMPLEMENTATION */
-// Shape::Shape(vec3 emit, vec3 color, float shininess, float Ka, float Ks, float Kd) : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd) {}
-// virtual float Shape::intersects(const vec4 start, const vec4 direction) {
-//     return -1;
-// }
-// virtual vec4 Shape::randomPoint() {
-//     return vec4();
-// };
-// virtual vec4 Shape::getNormal(const vec4 &p) {
-//     return vec4();
-// };
-// virtual bool Shape::isLight() {
-//     return emit.x > 0 || emit.y > 0 || emit.z > 0;
-// }
+Shape::Shape(vec3 emit, vec3 color, float shininess, float Ka, float Ks, float Kd) : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd) {}
+float Shape::intersects(const vec4 start, const vec4 direction) {
+    return -1;
+}
+vec4 Shape::randomPoint() {
+    return vec4();
+};
+vec4 Shape::getNormal(const vec4 &p) {
+    return vec4();
+};
+bool Shape::isLight() {
+    return emit.x > 0 || emit.y > 0 || emit.z > 0;
+}
 
 /* TRIANGLE CLASS IMPLEMENTATION */
 Triangle::Triangle(vec4 v0, vec4 v1, vec4 v2, vec3 emit, vec3 color, float shininess, float Ka, float Ks, float Kd) : Shape(emit, color, shininess, Ka, Ks, Kd), v0(v0), v1(v1), v2(v2) {
