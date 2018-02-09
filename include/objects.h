@@ -2,6 +2,7 @@
 #define OBJECTS_H
 
 #include <glm/glm.hpp>
+#include <vector>
 
 struct Intersection {
   glm::vec4 position;
@@ -18,7 +19,7 @@ struct Shape {
     float Kd;
 
     Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
-    virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
+    float intersects(const glm::vec4 start, const glm::vec4 direction);
     virtual glm::vec4 randomPoint();
     virtual glm::vec4 getNormal(const glm::vec4 &p);
     virtual bool isLight();
@@ -57,5 +58,7 @@ public:
 
     float intersects(const glm::vec4 start, const glm::vec4 direction);
 };
+
+void LoadModel(vector<Shape *> &scene, const char *path);
 
 #endif
