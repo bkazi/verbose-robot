@@ -1,5 +1,5 @@
-#ifndef SDL_AUXILIARY_H
-#define SDL_AUXILIARY_H
+#ifndef OBJECTS_H
+#define OBJECTS_H
 
 #include <glm/glm.hpp>
 
@@ -17,7 +17,7 @@ struct Shape {
     float Ks;
     float Kd;
 
-    Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd) : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd) {};
+    Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
     virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
     virtual glm::vec4 randomPoint();
     virtual glm::vec4 getNormal(const glm::vec4 &p);
@@ -32,7 +32,7 @@ public:
 	glm::vec3 e1;
 	glm::vec3 e2;
 
-	Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd) : Shape(emit, color, shininess, Ka, Ks, Kd), v0(v0), v1(v1), v2(v2) {};
+	Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
 
     glm::vec4 getNormal(const glm::vec4 &p);
 
@@ -41,6 +41,9 @@ public:
     float intersects(const glm::vec4 start, const glm::vec4 direction);
 
 	void ComputeNormal();
+
+private:
+	glm::vec4 normal;
 };
 
 class Sphere : public Shape {
@@ -48,7 +51,7 @@ public:
 	glm::vec4 c;
 	float radius;
 
-	Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd) : Shape(emit, color, shininess, Ka, Ks, Kd), c(c), radius(radius) {};
+	Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
 
     glm::vec4 getNormal(const glm::vec4 &p);
 

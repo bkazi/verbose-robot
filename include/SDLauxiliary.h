@@ -1,6 +1,9 @@
 #ifndef SDL_AUXILIARY_H
 #define SDL_AUXILIARY_H
 
+#include "SDL.h"
+#include <glm/glm.hpp>
+
 typedef struct{
   SDL_Window *window;
   SDL_Renderer *renderer;

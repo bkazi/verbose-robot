@@ -383,7 +383,8 @@ void LoadModel(vector<Shape *> &scene, const char *path) {
         verticies[1],
         vec3(material.emission[0], material.emission[1], material.emission[2]),
         vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]),
-        material.shininess,
+        (float)material.shininess,
+        dot(vec3(1), vec3(material.ambient[0], material.ambient[1], material.ambient[2])) / 3.0f,
         dot(vec3(1), vec3(material.specular[0], material.specular[1], material.specular[2])) / 3.0f,
         dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2])) / 3.0f
       )); 
