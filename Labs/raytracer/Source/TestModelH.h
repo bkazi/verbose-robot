@@ -26,8 +26,8 @@ void LoadTestModel(std::vector<Shape *>& shapes)
 	shapes.clear();
 	shapes.reserve(6*2 + 2);
 
-	shapes.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f, vec3(0), white, 2, 0.04, 0.96));
-	shapes.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, vec3(0), white, 2, 0.03, 0.97));
+	shapes.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f, vec3(0), white, 2, 0.5, 0.04, 0.46));
+	shapes.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, vec3(0), white, 2, 0.5, 0.04, 0.46));
 
 	// ---------------------------------------------------------------------------
 	// Room
@@ -45,28 +45,28 @@ void LoadTestModel(std::vector<Shape *>& shapes)
 	vec4 H(0,L,L,1);
 
 	//Light
-	shapes.push_back(new Triangle(vec4(3*L/4, L, L/4, 1), vec4(L/4, L, L/4, 1), vec4(3*L/4, L, 3*L/4, 1), 14.0f * vec3(1), vec3(0), 1, 0.1, 0.9));
-	shapes.push_back(new Triangle(vec4(L/4, L, L/4, 1), vec4(L/4, L, 3*L/4, 1), vec4(3*L/4, L, 3*L/4, 1), 14.0f * vec3(1), vec3(0), 1, 0.1, 0.9));
+	shapes.push_back(new Triangle(vec4(3*L/5, 0.99*L, 2*L/5, 1), vec4(2*L/5, 0.99*L, 2*L/5, 1), vec4(3*L/5, 0.99*L, 3*L/5, 1), 50.0f * vec3(1), vec3(0), 1, 0.1, 0.1, 0.8));
+	shapes.push_back(new Triangle(vec4(2*L/5, 0.99*L, 2*L/5, 1), vec4(2*L/5, 0.99*L, 3*L/5, 1), vec4(3*L/5, 0.99*L, 3*L/5, 1), 50.0f * vec3(1), vec3(0), 1, 0.1, 0.1, 0.8));
 
 	// Floor:
-	shapes.push_back(new Triangle(C, B, A, vec3(0), white, 100, 0.25, 0.75));
-	shapes.push_back(new Triangle(C, D, B, vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(C, B, A, vec3(0), white, 10, 0.5, 0.06, 0.44));
+	shapes.push_back(new Triangle(C, D, B, vec3(0), white, 10, 0.5, 0.06, 0.44));
 
 	// Left wall
-	shapes.push_back(new Triangle(A, E, C, vec3(0), red, 2, 0.08, 0.92));
-	shapes.push_back(new Triangle(C, E, G, vec3(0), red, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(A, E, C, vec3(0), red, 2, 0.5, 0.04, 0.46));
+	shapes.push_back(new Triangle(C, E, G, vec3(0), red, 2, 0.5, 0.04, 0.46));
 
 	// Right wall
-	shapes.push_back(new Triangle(F, B, D, vec3(0), green, 2, 0.08, 0.92));
-	shapes.push_back(new Triangle(H, F, D, vec3(0), green, 2, 0.08, 0.92));
+	shapes.push_back(new Triangle(F, B, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
+	shapes.push_back(new Triangle(H, F, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
 
 	// Ceiling
-	shapes.push_back(new Triangle(E, F, G, vec3(0), white, 100, 0.25, 0.75));
-	shapes.push_back(new Triangle(F, H, G, vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(E, F, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
+	shapes.push_back(new Triangle(F, H, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
 
 	// Back wall
-	shapes.push_back(new Triangle(G, D, C, vec3(0), white, 100, 0.25, 0.75));
-	shapes.push_back(new Triangle(G, H, D, vec3(0), white, 100, 0.25, 0.75));
+	shapes.push_back(new Triangle(G, D, C, vec3(0), white, 10, 0.5, 0.06, 0.44));
+	shapes.push_back(new Triangle(G, H, D, vec3(0), white, 10, 0.5, 0.06, 0.44));
 
 	// ---------------------------------------------------------------------------
 	// Short block

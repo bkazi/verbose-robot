@@ -15,10 +15,11 @@ struct Shape {
     vec3 emit;
     vec3 color;
     float shininess;
+    float Ka;
     float Ks;
     float Kd;
 
-    Shape(vec3 emit, vec3 color, float shininess, float Ks, float Kd) : emit(emit), color(color), shininess(shininess), Ks(Ks), Kd(Kd) {}
+    Shape(vec3 emit, vec3 color, float shininess, float Ka, float Ks, float Kd) : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd) {}
     virtual float intersects(const vec4 start, const vec4 direction) {
         return -1;
     }
@@ -35,7 +36,7 @@ public:
 	vec3 e1;
 	vec3 e2;
 
-	Triangle(vec4 v0, vec4 v1, vec4 v2, vec3 emit, vec3 color, float shininess, float Ks, float Kd) : Shape(emit, color, shininess, Ks, Kd), v0(v0), v1(v1), v2(v2) {
+	Triangle(vec4 v0, vec4 v1, vec4 v2, vec3 emit, vec3 color, float shininess, float Ka, float Ks, float Kd) : Shape(emit, color, shininess, Ka, Ks, Kd), v0(v0), v1(v1), v2(v2) {
 		ComputeNormal();
 	}
 
@@ -87,7 +88,7 @@ public:
 	vec4 c;
 	float radius;
 
-	Sphere(vec4 c, float radius, vec3 emit, vec3 color, float shininess, float Ks, float Kd) : Shape(emit, color, shininess, Ks, Kd), c(c), radius(radius) {}
+	Sphere(vec4 c, float radius, vec3 emit, vec3 color, float shininess, float Ka, float Ks, float Kd) : Shape(emit, color, shininess, Ka, Ks, Kd), c(c), radius(radius) {}
 
     vec4 getNormal(const vec4 &p) {
         return (p - c) / radius; 
