@@ -11,19 +11,29 @@
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
 
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "tiny_obj_loader.h"
+
 using namespace std;
 using glm::mat3;
 using glm::mat4;
+using glm::vec2;
 using glm::vec3;
 using glm::vec4;
+using glm::dot;
+using tinyobj::attrib_t;
+using tinyobj::shape_t;
+using tinyobj::material_t;
+using tinyobj::real_t;
+using tinyobj::index_t;
 
-#define SCREEN_WIDTH 256
-#define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
 #define NUM_RAYS 0
 #define BOUNCES 3
 #define MIN_BOUNCES 4
-#define MAX_BOUNCES 20
+#define MAX_BOUNCES 10
 #define NUM_SAMPLES 2
 #define LIVE
 
@@ -58,14 +68,16 @@ vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, int bounce);
 float max3(vec3);
+void LoadModel(vector<Shape *> &scene, const char *path);
 
 float samples = 0;
 vector<Shape *> shapes;
 int main(int argc, char *argv[]) {
-
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   LoadTestModel(shapes);
+  const string path = argv[1];
+  LoadModel(shapes, path.c_str());
 
   Camera camera = {
     SCREEN_HEIGHT,
@@ -131,7 +143,7 @@ void Update(Camera &camera, screen *screen) {
   int t2 = SDL_GetTicks();
   float dt = float(t2 - t);
   t = t2;
-  cout << "Render time: " << dt << " ms.\n";
+  cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
   camera.movement = vec3(0);
@@ -296,4 +308,84 @@ void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
 
 float max3(vec3 v) {
   return max(v.x, max(v.y, v.z));
+}
+
+void LoadModel(vector<Shape *> &scene, const char *path) {
+  attrib_t attrib;
+  vector<shape_t> shapes;
+  vector<material_t> materials;
+  std::string error;
+  std::string pathString = static_cast<string>(path);
+  // NB: Lib automatically triangulises -- can be disabled, but is default true
+  bool ret = tinyobj::LoadObj(
+    &attrib,
+    &shapes,
+    &materials,
+    &error,
+    path,
+    pathString.substr(0, pathString.find_last_of('/') + 1).c_str()
+  );
+  if (!error.empty()) {
+    cerr << error << endl;
+  }
+  if (!ret) {
+    exit(1);
+  }
+
+  // For each shape?
+  for (size_t s = 0; s < shapes.size(); s++) {
+    size_t index_offset = 0;
+
+    // For each face
+    for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+      int fv = shapes[s].mesh.num_face_vertices[f];
+
+      vector<vec4> verticies;
+      vector<vec4> normals;
+      vector<vec2> textures;
+      vector<vec3> colours;
+
+      // For each vertex
+      for (size_t v = 0; v < fv; v++) {
+
+        // access to vertex
+        index_t idx = shapes[s].mesh.indices[index_offset + v];
+
+        real_t vx = attrib.vertices[3*idx.vertex_index+0];
+        real_t vy = attrib.vertices[3*idx.vertex_index+1];
+        real_t vz = attrib.vertices[3*idx.vertex_index+2];
+        verticies.push_back(vec4(vx, vy, vz, 1));
+
+        real_t nx = attrib.normals[3*idx.normal_index+0];
+        real_t ny = attrib.normals[3*idx.normal_index+1];
+        real_t nz = attrib.normals[3*idx.normal_index+2];
+        normals.push_back(vec4(nx, ny, nz, 1));
+
+        real_t tx = attrib.texcoords[2*idx.texcoord_index+0];
+        real_t ty = attrib.texcoords[2*idx.texcoord_index+1];
+        textures.push_back(vec2(tx, ty));
+
+        // Optional: vertex colors
+        real_t red = attrib.colors[3*idx.vertex_index+0];
+        real_t green = attrib.colors[3*idx.vertex_index+1];
+        real_t blue = attrib.colors[3*idx.vertex_index+2];
+        colours.push_back(vec3(red, green, blue));
+      }
+      index_offset += fv;
+
+      // per-face material
+      tinyobj::material_t material = materials[shapes[s].mesh.material_ids[f]];
+
+      scene.push_back(new Triangle(
+        verticies[0],
+        verticies[2],
+        verticies[1],
+        vec3(material.emission[0], material.emission[1], material.emission[2]),
+        vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]),
+        material.shininess,
+        dot(vec3(1), vec3(material.specular[0], material.specular[1], material.specular[2])) / 3.0f,
+        dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2])) / 3.0f
+      )); 
+    }
+  }
 }
