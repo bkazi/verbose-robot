@@ -1,5 +1,5 @@
 # Header files
-GLMDIR = deps/glm
+GLMDIR = libs/glm
 HDIR := include $(GLMDIR)
 
 # Source files
