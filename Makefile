@@ -16,7 +16,7 @@ OBJS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%.o,$(basename $(SRCS)))
 
 # Binary files
 BINDIR = bin
-BINARYNAME = computer_graphics
+BINARYNAME = raytracer
 BINARY = $(BINDIR)/$(BINARYNAME)
 
 # Compilation options

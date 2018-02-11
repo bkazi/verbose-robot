@@ -11,7 +11,6 @@
 #include "SDLauxiliary.h"
 #include "TestModel.h"
 #include "objects.h"
-#include "model_loader.h"
 
 using namespace std;
 using glm::mat3;
@@ -69,8 +68,9 @@ int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   LoadTestModel(shapes);
+
   const string path = argv[1];
-  LoadModel(shapes, path.c_str());
+  LoadModel(shapes, path);
 
   Camera camera = {
     SCREEN_HEIGHT,

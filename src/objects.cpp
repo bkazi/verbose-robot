@@ -1,11 +1,16 @@
 #include "objects.h"
 #include "tiny_obj_loader.h"
 
+#include <iostream>
+
+using namespace std;
+
 using glm::mat3;
+using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 using glm::determinant;
-using glm:dot;
+using glm::dot;
 using tinyobj::attrib_t;
 using tinyobj::shape_t;
 using tinyobj::material_t;
@@ -92,20 +97,19 @@ float Sphere::intersects(const vec4 start, const vec4 direction) {
 }
 
 /* Load Model into scene */
-void LoadModel(vector<Shape *> &scene, const char *path) {
+void LoadModel(vector<Shape *> &scene, string path) {
   attrib_t attrib;
   vector<shape_t> shapes;
   vector<material_t> materials;
-  std::string error;
-  std::string pathString = static_cast<string>(path);
+  string error;
   // NB: Lib automatically triangulises -- can be disabled, but is default true
   bool ret = tinyobj::LoadObj(
     &attrib,
     &shapes,
     &materials,
     &error,
-    path,
-    pathString.substr(0, pathString.find_last_of('/') + 1).c_str()
+    path.c_str(),
+    path.substr(0, path.find_last_of('/') + 1).c_str()
   );
   if (!error.empty()) {
     cerr << error << endl;

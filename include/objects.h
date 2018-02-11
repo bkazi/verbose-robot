@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
 
 struct Intersection {
   glm::vec4 position;
@@ -59,6 +60,6 @@ public:
     float intersects(const glm::vec4 start, const glm::vec4 direction);
 };
 
-void LoadModel(vector<Shape *> &scene, const char *path);
+void LoadModel(std::vector<Shape *> &scene, std::string path);
 
 #endif
