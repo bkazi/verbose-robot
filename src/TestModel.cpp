@@ -1,9 +1,7 @@
-#ifndef TEST_MODEL_CORNEL_BOX_H
-#define TEST_MODEL_CORNEL_BOX_H
-
 #include <glm/glm.hpp>
 #include <vector>
-#include "Objects.h"
+
+#include "objects.h"
 
 // Loads the Cornell Box. It is scaled to fill the volume:
 // -1 <= x <= +1
@@ -166,5 +164,3 @@ void LoadTestModel(std::vector<Shape *>& shapes)
 		}
 	}
 }
-
-#endif

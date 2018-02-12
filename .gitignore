@@ -1,1 +1,5 @@
 *.vscode/
+build/
+bin/
+dependencies/
+screenshot.bmp
