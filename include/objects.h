@@ -20,7 +20,7 @@ struct Shape {
     float Kd;
 
     Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
-    float intersects(const glm::vec4 start, const glm::vec4 direction);
+    virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
     virtual glm::vec4 randomPoint();
     virtual glm::vec4 getNormal(const glm::vec4 &p);
     virtual bool isLight();

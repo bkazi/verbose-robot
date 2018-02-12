@@ -222,8 +222,7 @@ std::uniform_real_distribution<float> distribution(0, 1);
 
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
-  if (ClosestIntersection(start + start * 1e-4f, dir, intersection)) {
-
+  if (ClosestIntersection(start + dir * 1e-4f, dir, intersection)) {
     Shape *obj = shapes[intersection.shapeIndex];
     // Russian roulette termination
     float U = rand() / (float) RAND_MAX;
