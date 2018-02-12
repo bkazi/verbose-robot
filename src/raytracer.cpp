@@ -69,8 +69,10 @@ int main(int argc, char *argv[]) {
 
   LoadTestModel(shapes);
 
-  const string path = argv[1];
-  LoadModel(shapes, path);
+  if (argc >= 2) {
+    const string path = argv[1];
+    LoadModel(shapes, path);
+  }
 
   Camera camera = {
     SCREEN_HEIGHT,
