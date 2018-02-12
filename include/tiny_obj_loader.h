@@ -52,12 +52,12 @@ THE SOFTWARE.
 
 namespace tinyobj {
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#if __has_warning("-Wzero-as-null-pointer-constant")
-#pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
-#endif
-#endif
+// #ifdef __clang__
+// #pragma clang diagnostic push
+// #if __has_warning("-Wzero-as-null-pointer-constant")
+// #pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
+// #endif
+// #endif
 
 // https://en.wikipedia.org/wiki/Wavefront_.obj_file says ...
 //
