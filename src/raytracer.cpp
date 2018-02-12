@@ -1,10 +1,10 @@
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 #include <random> 
-#include <time.h>
-#include <stdint.h>
-#include <limits.h>
-#include <math.h>
+#include <ctime>
+#include <cstdint>
+#include <climits>
+#include <cmath>
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <SDL.h>
