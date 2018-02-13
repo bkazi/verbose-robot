@@ -2,64 +2,75 @@
 #define OBJECTS_H
 
 #include <glm/glm.hpp>
-#include <vector>
 #include <string>
+#include <vector>
 
 struct Intersection {
   glm::vec4 position;
   float distance;
-  int shapeIndex;
+  int objectIndex;
+  int primitiveIndex;
 };
 
-struct Shape {
-    glm::vec3 emit;
-    glm::vec3 color;
-    float shininess;
-    float Ka;
-    float Ks;
-    float Kd;
+struct Object {
+ public:
+  Object(std::vector<Primitive *> primitives);
+  void computeBounds(const Vec3f &planeNormal, float &dnear, float &dfar);
+  std::vector<Primitive *> primitives;
+}
 
-    Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
-    virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
-    virtual glm::vec4 randomPoint();
-    virtual glm::vec4 getNormal(const glm::vec4 &p);
-    virtual bool isLight();
+struct Primitive {
+  glm::vec3 emit;
+  glm::vec3 color;
+  float shininess;
+  float Ka;
+  float Ks;
+  float Kd;
+
+  Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
+        float Kd);
+  virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
+  virtual glm::vec4 randomPoint();
+  virtual glm::vec4 getNormal(const glm::vec4 &p);
+  virtual bool isLight();
 };
 
-class Triangle : public Shape {
-public:
-	glm::vec4 v0;
-	glm::vec4 v1;
-	glm::vec4 v2;
-	glm::vec3 e1;
-	glm::vec3 e2;
+class Triangle : public Primitive {
+ public:
+  glm::vec4 v0;
+  glm::vec4 v1;
+  glm::vec4 v2;
+  glm::vec3 e1;
+  glm::vec3 e2;
 
-	Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
+  Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit,
+           glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
 
-    glm::vec4 getNormal(const glm::vec4 &p);
+  glm::vec4 getNormal(const glm::vec4 &p);
 
-    glm::vec4 randomPoint();
+  glm::vec4 randomPoint();
 
-    float intersects(const glm::vec4 start, const glm::vec4 direction);
+  float intersects(const glm::vec4 start, const glm::vec4 direction);
 
-	void ComputeNormal();
+  void ComputeNormal();
 
-private:
-	glm::vec4 normal;
+ private:
+  glm::vec4 normal;
 };
 
-class Sphere : public Shape {
-public:
-	glm::vec4 c;
-	float radius;
+class Sphere : public Primitive {
+ public:
+  glm::vec4 c;
+  float radius;
 
-	Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
+  Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color,
+         float shininess, float Ka, float Ks, float Kd);
 
-    glm::vec4 getNormal(const glm::vec4 &p);
+  glm::vec4 getNormal(const glm::vec4 &p);
 
-    float intersects(const glm::vec4 start, const glm::vec4 direction);
+  float intersects(const glm::vec4 start, const glm::vec4 direction);
 };
 
-void LoadModel(std::vector<Shape *> &scene, std::string path);
+void LoadModel(std::vector<Object *> &scene, std::string path);
 
 #endif
