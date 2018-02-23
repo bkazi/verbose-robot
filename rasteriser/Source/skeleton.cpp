@@ -93,7 +93,8 @@ void Draw(screen* screen) {
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   
   for (uint32_t i = 0; i < triangles.size(); i++) {
-    vector<vec4> vertices({transMat * triangles[i].v0, transMat * triangles[i].v1, transMat * triangles[i].v2});
+    // vector<vec4> vertices({transMat * triangles[i].v0, transMat * triangles[i].v1, transMat * triangles[i].v2});
+    vector<vec4> vertices({triangles[i].v0 - camera.position, triangles[i].v1 - camera.position, triangles[i].v2 - camera.position});
 
     // DrawPolygonEdges(screen, vertices);
     DrawPolygon(screen, vertices, triangles[i].color);
@@ -241,8 +242,8 @@ void ComputePolygonRows(const vector<ivec2>& vertexPixels, vector<ivec2>& leftPi
   // 3. Initialize the x-coordinates in leftPixels
   //    to some really large value and the x-coordinates
   //    in rightPixels to some really small value.
-  // leftPixels.reserve(rows);
-  // rightPixels.reserve(rows);
+  leftPixels.reserve(rows);
+  rightPixels.reserve(rows);
   for (int i = 0; i < rows; i++) {
     leftPixels.push_back(ivec2(+numeric_limits<int>::max(), minY + i));
     rightPixels.push_back(ivec2(-numeric_limits<int>::max(), minY + i));
