@@ -13,11 +13,12 @@ typedef struct{
   int height;
   int width;
   uint32_t *buffer;
+  uint32_t *depthBuffer;
 } screen;
 
 screen* InitializeSDL( int width, int height, bool fullscreen = false );
 bool NoQuitMessageSDL();
-void PutPixelSDL( screen *s, int x, int y, glm::vec3 color );
+void PutPixelSDL( screen *s, int x, int y, glm::vec3 color, uint32_t depth);
 void SDL_Renderframe(screen *s);
 void KillSDL(screen* s);
 void SDL_SaveImage(screen *s, const char* filename);
@@ -83,7 +84,9 @@ screen* InitializeSDL(int width,int height, bool fullscreen)
   s->width = width;
   s->height = height;
   s->buffer = new uint32_t[width*height];
+  s->depthBuffer = new uint32_t[width*height];
   memset(s->buffer, 0, width*height*sizeof(uint32_t));
+  memset(s->depthBuffer, 0, width*height*sizeof(uint32_t));
   
   uint32_t flags = SDL_WINDOW_OPENGL;
   if(fullscreen)
@@ -146,7 +149,7 @@ bool NoQuitMessageSDL()
   return true;
 }
 
-void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
+void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, uint32_t depth)
 {
   if(x<0 || x>=s->width || y<0 || y>=s->height)
     {
@@ -157,7 +160,10 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour)
   uint32_t g = uint32_t( glm::clamp( 255*colour.g, 0.f, 255.f ) );
   uint32_t b = uint32_t( glm::clamp( 255*colour.b, 0.f, 255.f ) );
 
-  s->buffer[y*s->width+x] = (255<<24) + (r<<16) + (g<<8) + b;
+  if (depth > s->depthBuffer[y*s->width+x]) {
+    s->depthBuffer[y*s->width+x] = depth;
+    s->buffer[y*s->width+x] = (255<<24) + (r<<16) + (g<<8) + b;
+  }
 }
 
 
