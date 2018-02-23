@@ -68,6 +68,22 @@ int main(int argc, char* argv[]) {
   
   LoadTestModel(triangles);
 
+  // vector<ivec2> vertexPixels(3);
+  // vertexPixels[0] = ivec2(10, 5);
+  // vertexPixels[1] = ivec2(5, 10);
+  // vertexPixels[2] = ivec2(15,15);
+  // vector<ivec2> leftPixels;
+  // vector<ivec2> rightPixels;
+  // ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
+  // for (int row = 0; row < leftPixels.size(); ++row) {
+  //   cout << "Start: ("
+  //   << leftPixels[row].x << ","
+  //   << leftPixels[row].y << "). "
+  //   << "End: ("
+  //   << rightPixels[row].x << ","
+  //   << rightPixels[row].y << "). " << endl;
+  // }
+
   while (NoQuitMessageSDL()) {
     Update();
     Draw(screen);
@@ -179,7 +195,7 @@ void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result) {
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result) {
   int N = result.size();
   vec2 stepV = vec2(vec2(b.x, b.y) - vec2(a.x, a.y)) / float(max(N-1,1));
-  float stepZ = b.zinv - a.zinv / float(max(N - 1, 1));
+  float stepZ = (b.zinv - a.zinv) / float(max(N - 1, 1));
   vec2 currentV(vec2(a.x, a.y));
   float currentZ = a.zinv;
 
