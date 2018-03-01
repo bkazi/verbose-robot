@@ -10,8 +10,8 @@
 #include <random>
 #include "SDLauxiliary.h"
 #include "TestModel.h"
-#include "objects.h"
 #include "bvh.h"
+#include "objects.h"
 
 using namespace std;
 using glm::mat3;
@@ -217,16 +217,26 @@ bool ClosestIntersection(vec4 start, vec4 dir,
   closestIntersection.distance = m;
   closestIntersection.objectIndex = -1;
 
-  uint objectIndex = bvh->intersect(start, dir);
+  // uint i = bvh->intersect(start, dir);
+  // for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
+  //   float dist = scene[i]->primitives[j]->intersects(start, dir);
+  //   if (dist > 0 && dist < closestIntersection.distance) {
+  //     closestIntersection.distance = dist;
+  //     closestIntersection.objectIndex = i;
+  //     closestIntersection.primitiveIndex = j;
+  //     closestIntersection.position = start + dist * dir;
+  //   }
+  // }
 
-  for (uint j = 0; j < scene[objectIndex]->primitives.size(); j++) {
-    Primitive *primitive = scene[objectIndex]->primitives[j];
-    float dist = primitive->intersects(start, dir);
-    if (dist > 0 && dist < closestIntersection.distance) {
-      closestIntersection.distance = dist;
-      closestIntersection.objectIndex = objectIndex;
-      closestIntersection.primitiveIndex = j;
-      closestIntersection.position = start + dist * dir;
+  for (uint i = 0; i < scene.size(); ++i) {
+    for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
+      float dist = scene[i]->primitives[j]->intersects(start, dir);
+      if (dist > 0 && dist < closestIntersection.distance) {
+        closestIntersection.distance = dist;
+        closestIntersection.objectIndex = i;
+        closestIntersection.primitiveIndex = j;
+        closestIntersection.position = start + dist * dir;
+      }
     }
   }
 
