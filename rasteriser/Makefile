@@ -1,48 +1,49 @@
-FILE=skeleton
-GLMDIR = ../libs/glm
+# Header files
+GLMDIR = libs/glm
+HDIR := include $(GLMDIR)
 
-########
-#   Directories
-S_DIR=Source
-B_DIR=Build
+# Source files
+SRCDIR = src
+SRCS = $(wildcard $(SRCDIR)/*.cpp)
 
-########
-#   Output
-EXEC=$(B_DIR)/$(FILE)
+# Dependencies
+DEPDIR = dependencies
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
-# default build settings
-CC_OPTS=-std=c++11 -c -pipe -Wall -Wno-switch -ggdb -g3 
-LN_OPTS=
-CC=icpc
+# Object files
+BUILDDIR = build
+OBJS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%.o,$(basename $(SRCS)))
 
-########
-#       SDL options
-SDL_CFLAGS := $(shell sdl2-config --cflags)
-GLM_CFLAGS := -I$(GLMDIR)
-SDL_LDFLAGS := $(shell sdl2-config --libs)
+# Binary files
+BINDIR = bin
+BINARYNAME = rasteriser
+BINARY = $(BINDIR)/$(BINARYNAME)
 
-########
-#   This is the default action
-all:Build
+# Compilation options
+CXX = icpc
+CXXFLAGS = -std=c++11 -Wall -Ofast -march=native -fopenmp -ggdb -g3 -D unix -D GLM_FORCE_SSE2 -D GLM_FORCE_ALIGNED -D textureLess $(addprefix -I, $(HDIR)) $(shell sdl2-config --cflags) $(DEPFLAGS)
+COMPILE = $(CXX) -o $@ -c $< $(CXXFLAGS)
 
+# Link Options
+LDFLAGS += $(shell sdl2-config --libs) -fopenmp
+LINK = $(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
-########
-#   Object list
-#
-OBJ = $(B_DIR)/$(FILE).o
-
-
-########
-#   Objects
-$(B_DIR)/$(FILE).o : $(S_DIR)/$(FILE).cpp $(S_DIR)/SDLauxiliary.h $(S_DIR)/TestModelH.h
-	$(CC) $(CC_OPTS) -o $(B_DIR)/$(FILE).o $(S_DIR)/$(FILE).cpp $(SDL_CFLAGS) $(GLM_CFLAGS)
-
-
-########
-#   Main build rule     
-Build : $(OBJ) Makefile
-	$(CC) $(LN_OPTS) -o $(EXEC) $(OBJ) $(SDL_LDFLAGS)
-
-
+.PHONY: all clean
+all: $(BUILDDIR) $(DEPDIR) $(BINDIR) $(BINARY)
 clean:
-	rm -f $(B_DIR)/* 
+	@$(RM) $(BUILDDIR)/*.o $(DEPDIR)/*.d $(BINARY) screenshot.bmp
+
+$(BUILDDIR) $(DEPDIR) $(BINDIR):
+	mkdir -p $@
+
+# Compiling Objects
+$(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+	$(info $@)
+	@$(COMPILE)
+
+# Compiling Release Binary
+$(BINARY): $(OBJS)
+	$(info $@)
+	@$(LINK)
+
+include $(wildcard $(DEPDIR)/*.d)
