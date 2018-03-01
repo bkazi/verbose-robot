@@ -7,8 +7,8 @@
 
 struct Extents {
   Extents();
-  bool intersect(const glm::vec4 start, const glm::vec4 direction, float &tNear,
-                 float &tFar, uint8_t &planeIndex);
+  bool intersect(const glm::vec4 start, const glm::vec4 direction,float *precomputedNumerator, float *precomputeDenominator,
+                   float &tNear, float &tFar);
   float d[7][2];
 };
 
@@ -17,8 +17,8 @@ struct BVH {
   Extents *extents;
 
  public:
-  BVH(std::vector<Object *> shapes);
-  bool intersect(const glm::vec4 start, const glm::vec4 direction);
+  BVH(std::vector<Object *> scene);
+  Object* intersect(std::vector<Object *> scene, const glm::vec4 start, const glm::vec4 direction);
 };
 
 #endif
