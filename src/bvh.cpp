@@ -6,7 +6,7 @@ using glm::vec3;
 const float rt3b3 = sqrtf(3) / 3.f;
 
 const uint normalSize = 7;
-const vec3 planeSetNormals[7] = {vec3(1, 0, 0),
+const vec3 planeSetNormals[normalSize] = {vec3(1, 0, 0),
                                  vec3(0, 1, 0),
                                  vec3(0, 0, 1),
                                  vec3(rt3b3, rt3b3, rt3b3),
