@@ -1,3 +1,3 @@
-- [ ] Rotate about a _*known*_ point
-- [ ] Not upside down
-- [ ] Colour
+- [ ] use shape classes from raytracer
+- [ ] use obj loader from raytracer
+- [ ] shadows
