@@ -17,8 +17,8 @@ struct BVH {
   Extents *extents;
 
  public:
-  BVH(std::vector<Shape *> shapes);
-  const bool intersect(const glm::vec4 start, const glm::vec4 direction);
+  BVH(std::vector<Object *> shapes);
+  bool intersect(const glm::vec4 start, const glm::vec4 direction);
 };
 
 #endif

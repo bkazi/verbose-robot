@@ -77,7 +77,7 @@ void LoadTestModel(std::vector<Object *> &scene) {
       new Triangle(A, E, C, vec3(0), red, 2, 0.5, 0.04, 0.46));
   leftWallPrimitives.push_back(
       new Triangle(C, E, G, vec3(0), red, 2, 0.5, 0.04, 0.46));
-  scene.push_back(leftWallPrimitives);
+  scene.push_back(new Object(leftWallPrimitives));
 
   // Right wall
   std::vector<Primitive *> rightWallPrimitives;
@@ -85,7 +85,7 @@ void LoadTestModel(std::vector<Object *> &scene) {
       new Triangle(F, B, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
   rightWallPrimitives.push_back(
       new Triangle(H, F, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
-  scene.push_back(rightWallPrimitives);
+  scene.push_back(new Object(rightWallPrimitives));
 
   // Ceiling
   std::vector<Primitive *> ceilingPrimitives;
@@ -93,7 +93,7 @@ void LoadTestModel(std::vector<Object *> &scene) {
       new Triangle(E, F, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
   ceilingPrimitives.push_back(
       new Triangle(F, H, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
-  scene.push_back(ceilingPrimitives);
+  scene.push_back(new Object(ceilingPrimitives));
 
   // Back wall
   std::vector<Primitive *> backWallPrimitives;
@@ -101,7 +101,7 @@ void LoadTestModel(std::vector<Object *> &scene) {
       new Triangle(G, D, C, vec3(0), white, 10, 0.5, 0.06, 0.44));
   backWallPrimitives.push_back(
       new Triangle(G, H, D, vec3(0), white, 10, 0.5, 0.06, 0.44));
-  scene.push_back(backWallPrimitives);
+  scene.push_back(new Object(backWallPrimitives));
 
   // ---------------------------------------------------------------------------
   // Short block
@@ -173,9 +173,9 @@ void LoadTestModel(std::vector<Object *> &scene) {
   // Scale to the volume [-1,1]^3
 
   for (size_t i = 0; i < scene.size(); ++i) {
-    for (size_t j = 0; j < scene[i].primitives.size(); j++) {
+    for (size_t j = 0; j < scene[i]->primitives.size(); j++) {
       Triangle *tri;
-      if ((tri = dynamic_cast<Triangle *>(scene[i].primitives[j]))) {
+      if ((tri = dynamic_cast<Triangle *>(scene[i]->primitives[j]))) {
         tri->v0 *= 2 / L;
         tri->v1 *= 2 / L;
         tri->v2 *= 2 / L;

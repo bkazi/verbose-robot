@@ -12,14 +12,8 @@ struct Intersection {
   int primitiveIndex;
 };
 
-struct Object {
- public:
-  Object(std::vector<Primitive *> primitives);
-  void computeBounds(const Vec3f &planeNormal, float &dnear, float &dfar);
-  std::vector<Primitive *> primitives;
-}
-
 struct Primitive {
+public:
   glm::vec3 emit;
   glm::vec3 color;
   float shininess;
@@ -27,12 +21,19 @@ struct Primitive {
   float Ks;
   float Kd;
 
-  Shape(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
+  Primitive(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
         float Kd);
   virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
   virtual glm::vec4 randomPoint();
   virtual glm::vec4 getNormal(const glm::vec4 &p);
   virtual bool isLight();
+};
+
+struct Object {
+ public:
+  Object(std::vector<Primitive *> primitives);
+  void computeBounds(const glm::vec3 &planeNormal, float &dnear, float &dfar);
+  std::vector<Primitive *> primitives;
 };
 
 class Triangle : public Primitive {

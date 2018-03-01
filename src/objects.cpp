@@ -26,30 +26,27 @@ void Object::computeBounds(const vec3 &planeNormal, float &dnear,
     Triangle *tri;
     Sphere *sph;
     if ((tri = dynamic_cast<Triangle *>(primitives[i]))) {
-      d = dot(planeNormal, vec3(tri.v0.x, tri.v0.y, tri.v0.z));
+      d = dot(planeNormal, vec3(tri->v0.x, tri->v0.y, tri->v0.z));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
 
-      d = dot(planeNormal, vec3(tri.v1.x, tri.v1.y, tri.v1.z));
+      d = dot(planeNormal, vec3(tri->v1.x, tri->v1.y, tri->v1.z));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
 
-      d = dot(planeNormal, vec3(tri.v2.x, tri.v2.y, tri.v2.z));
+      d = dot(planeNormal, vec3(tri->v2.x, tri->v2.y, tri->v2.z));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
     }
     if ((sph = dynamic_cast<Sphere *>(primitives[i]))) {
-      d = dot(planeNormal, vec3(sph.c.x, sph.c.y, sph.c.z) + (planeNormal * sph.radius))
+      d = dot(planeNormal, vec3(sph->c.x, sph->c.y, sph->c.z) + (planeNormal * sph->radius));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
 
-      d = dot(planeNormal, vec3(sph.c.x, sph.c.y, sph.c.z) - (planeNormal * sph.radius))
+      d = dot(planeNormal, vec3(sph->c.x, sph->c.y, sph->c.z) - (planeNormal * sph->radius));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
     }
-    d = dot(planeNormal, [i]);
-    if (d < dnear) dnear = d;
-    if (d > dfar) dfar = d;
   }
 }
 
@@ -205,6 +202,6 @@ void LoadModel(vector<Object *> &scene, string path) {
                             material.diffuse[2])) /
               3.0f));
     }
-    scene.push_back(shapePrimitives);
+    scene.push_back(new Object(shapePrimitives));
   }
 }

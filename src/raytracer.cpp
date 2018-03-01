@@ -62,7 +62,7 @@ vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, int bounce);
 float max3(vec3);
-void LoadModel(vector<Shape *> &scene, const char *path);
+void LoadModel(vector<Object *> &scene, const char *path);
 
 float samples = 0;
 vector<Object *> scene;
@@ -215,9 +215,9 @@ bool ClosestIntersection(vec4 start, vec4 dir,
 
   for (uint index = 0; index < scene.size(); index++) {
     Object *object = scene[index];
-    for (uint j = 0; j < object.primitives.size(); j++) {
-      Shape *shape = object.primitives[j];
-      float dist = shape->intersects(start, dir);
+    for (uint j = 0; j < object->primitives.size(); j++) {
+      Primitive *primitive = object->primitives[j];
+      float dist = primitive->intersects(start, dir);
       if (dist > 0 && dist < closestIntersection.distance) {
         closestIntersection.distance = dist;
         closestIntersection.objectIndex = index;
@@ -237,7 +237,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
   if (ClosestIntersection(start + dir * 1e-4f, dir, intersection)) {
     Primitive *primitive =
-        scene[intersection.objectIndex].primitives[intersection.primitiveIndex];
+        scene[intersection.objectIndex]->primitives[intersection.primitiveIndex];
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
     if (bounce > MIN_BOUNCES &&
@@ -262,7 +262,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
           Intersection lightIntersection;
           if (ClosestIntersection(hitPos + lightDir * 1e-4f, lightDir,
                                   lightIntersection)) {
-            if (light == scene[lightIntersection.objectIndex].primitives[lightIntersection.primitiveIndex]) {
+            if (light == scene[lightIntersection.objectIndex]->primitives[lightIntersection.primitiveIndex]) {
               vec4 reflected = glm::reflect(lightDir, normal);
               directSpecularLight +=
                   light->emit *
