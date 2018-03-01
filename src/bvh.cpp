@@ -5,7 +5,7 @@ using glm::vec3;
 
 const float rt3b3 = sqrtf(3) / 3.f;
 
-const uint normalSize = 7;
+const uint32_t normalSize = 7;
 const vec3 planeSetNormals[normalSize] = {vec3(1, 0, 0),
                                  vec3(0, 1, 0),
                                  vec3(0, 0, 1),
@@ -45,17 +45,17 @@ BVH::BVH(vector<Object *> scene) {
   }
 }
 
-uint BVH::intersect(const glm::vec4 start,
+uint32_t BVH::intersect(const glm::vec4 start,
                        const glm::vec4 direction) {
   float tClosest = INFINITY;
-  uint hitObject = NULL;
+  uint32_t hitObject = NULL;
   float precomputedNumerator[normalSize], precomputeDenominator[normalSize];
 
   for (uint8_t i = 0; i < normalSize; ++i) {
     precomputedNumerator[i] =
-        dot(planeSetNormals[i], vec3(start.x, start.y, start.z));
+        glm::dot(planeSetNormals[i], vec3(start.x, start.y, start.z));
     precomputeDenominator[i] =
-        dot(planeSetNormals[i], vec3(direction.x, direction.y, direction.z));
+        glm::dot(planeSetNormals[i], vec3(direction.x, direction.y, direction.z));
   }
 
   for (uint32_t i = 0; i < sceneSize; ++i) {
