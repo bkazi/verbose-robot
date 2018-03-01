@@ -35,6 +35,7 @@ bool Extents::intersect(const glm::vec4 start, const glm::vec4 direction,
 }
 
 BVH::BVH(vector<Object *> scene) {
+  sceneSize = scene.size();
   extents = new Extents[scene.size()];
   for (uint32_t i = 0; i < scene.size(); ++i) {
     for (uint8_t j = 0; j < normalSize; ++j) {
@@ -44,10 +45,10 @@ BVH::BVH(vector<Object *> scene) {
   }
 }
 
-Object *BVH::intersect(vector<Object *> scene, const glm::vec4 start,
+uint BVH::intersect(const glm::vec4 start,
                        const glm::vec4 direction) {
   float tClosest = INFINITY;
-  Object *hitObject = NULL;
+  uint hitObject = NULL;
   float precomputedNumerator[normalSize], precomputeDenominator[normalSize];
 
   for (uint8_t i = 0; i < normalSize; ++i) {
@@ -57,13 +58,13 @@ Object *BVH::intersect(vector<Object *> scene, const glm::vec4 start,
         dot(planeSetNormals[i], vec3(direction.x, direction.y, direction.z));
   }
 
-  for (uint32_t i = 0; i < scene.size(); ++i) {
+  for (uint32_t i = 0; i < sceneSize; ++i) {
     // __sync_fetch_and_add(&numRayVolumeTests, 1); -- I no understand
     float tNear = -INFINITY, tFar = INFINITY;
     if (extents[i].intersect(start, direction, precomputedNumerator,
                              precomputeDenominator, tNear, tFar)) {
       if (tNear < tClosest) tClosest = tNear;
-      hitObject = scene[i];
+      hitObject = i;
     }
   }
 

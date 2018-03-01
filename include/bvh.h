@@ -15,10 +15,11 @@ struct Extents {
 struct BVH {
  private:
   Extents *extents;
+  uint sceneSize;
 
  public:
   BVH(std::vector<Object *> scene);
-  Object* intersect(std::vector<Object *> scene, const glm::vec4 start, const glm::vec4 direction);
+  uint intersect(const glm::vec4 start, const glm::vec4 direction);
 };
 
 #endif
