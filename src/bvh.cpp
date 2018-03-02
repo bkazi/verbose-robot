@@ -1,4 +1,5 @@
 #include "bvh.h"
+#include <iostream>
 
 using namespace std;
 using glm::vec3;
@@ -45,10 +46,10 @@ BVH::BVH(vector<Object *> scene) {
   }
 }
 
-uint32_t BVH::intersect(const glm::vec4 start,
+vector<uint32_t> BVH::intersect(const glm::vec4 start,
                        const glm::vec4 direction) {
   float tClosest = INFINITY;
-  uint32_t hitObject = NULL;
+  vector<uint32_t> hitObjects;
   float precomputedNumerator[normalSize], precomputeDenominator[normalSize];
 
   for (uint8_t i = 0; i < normalSize; ++i) {
@@ -64,9 +65,9 @@ uint32_t BVH::intersect(const glm::vec4 start,
     if (extents[i].intersect(start, direction, precomputedNumerator,
                              precomputeDenominator, tNear, tFar)) {
       if (tNear < tClosest) tClosest = tNear;
-      hitObject = i;
+      hitObjects.push_back(i);
     }
   }
 
-  return hitObject;
+  return hitObjects;
 }

@@ -19,7 +19,7 @@ struct BVH {
 
  public:
   BVH(std::vector<Object *> scene);
-  uint32_t intersect(const glm::vec4 start, const glm::vec4 direction);
+  std::vector<uint32_t> intersect(const glm::vec4 start, const glm::vec4 direction);
 };
 
 #endif

@@ -217,7 +217,7 @@ bool ClosestIntersection(vec4 start, vec4 dir,
   closestIntersection.distance = m;
   closestIntersection.objectIndex = -1;
 
-  // uint i = bvh->intersect(start, dir);
+  vector<uint32_t> indices = bvh->intersect(start, dir);
   // for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
   //   float dist = scene[i]->primitives[j]->intersects(start, dir);
   //   if (dist > 0 && dist < closestIntersection.distance) {
@@ -228,12 +228,12 @@ bool ClosestIntersection(vec4 start, vec4 dir,
   //   }
   // }
 
-  for (uint i = 0; i < scene.size(); ++i) {
-    for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
-      float dist = scene[i]->primitives[j]->intersects(start, dir);
+  for (uint i = 0; i < indices.size(); ++i) {
+    for (uint j = 0; j < scene[indices[i]]->primitives.size(); ++j) {
+      float dist = scene[indices[i]]->primitives[j]->intersects(start, dir);
       if (dist > 0 && dist < closestIntersection.distance) {
         closestIntersection.distance = dist;
-        closestIntersection.objectIndex = i;
+        closestIntersection.objectIndex = indices[i];
         closestIntersection.primitiveIndex = j;
         closestIntersection.position = start + dist * dir;
       }
