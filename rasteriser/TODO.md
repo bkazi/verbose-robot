@@ -1,3 +1,0 @@
-- [ ] use shape classes from raytracer
-- [ ] use obj loader from raytracer
-- [ ] shadows

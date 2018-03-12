@@ -3,7 +3,7 @@
 // #include <glm/gtx/string_cast.hpp>
 #include <SDL.h>
 #include "SDLauxiliary.h"
-#include "TestModelH.h"
+#include "TestModel.h"
 #include <stdint.h>
 
 using namespace std;
@@ -66,7 +66,7 @@ void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPi
 void DrawRows(const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels);
 void DrawPolygon(screen *screen, const vector<Vertex>& vertices);
 
-vector<Triangle> triangles;
+vector<Shape *> shapes;
 Camera camera;
 
 vec4 lightPos(0, -0.5, -0.7, 1);
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   
-  LoadTestModel(triangles);
+  LoadTestModel(shapes);
 
   while (NoQuitMessageSDL()) {
     Update();
@@ -106,15 +106,20 @@ void Draw(screen* screen) {
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(uint32_t));
   
-  for (uint32_t i = 0; i < triangles.size(); i++) {
+  for (uint32_t i = 0; i < shapes.size(); i++) {
+    Triangle *tri;
+    if ((tri = dynamic_cast<Triangle *>(shapes[i]))) {
     vector<Vertex> vertices({
-      Vertex(transMat * triangles[i].v0, triangles[i].normal, triangles[i].color),
-      Vertex(transMat * triangles[i].v1, triangles[i].normal, triangles[i].color),
-      Vertex(transMat * triangles[i].v2, triangles[i].normal, triangles[i].color)
+      Vertex(transMat * tri->v0, tri->getNormal(vec4(1)), tri->color),
+      Vertex(transMat * tri->v1, tri->getNormal(vec4(1)), tri->color),
+      Vertex(transMat * tri->v2, tri->getNormal(vec4(1)), tri->color)
     });
 
     // DrawPolygonEdges(screen, vertices);
     DrawPolygon(screen, vertices);
+    } else {
+      cout << "A Shape which isn't a Triangle is in the scene, skipping" << endl;
+    }
   }
 }
 

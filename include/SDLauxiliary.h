@@ -12,6 +12,7 @@ typedef struct{
   int width;
   uint32_t *buffer;
   glm::vec3* pixels;
+  float *depthBuffer;
   int samples;
 } screen;
 
