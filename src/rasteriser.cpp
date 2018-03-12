@@ -4,6 +4,7 @@
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModel.h"
+#include "camera.h"
 #include <stdint.h>
 
 using namespace std;
@@ -18,14 +19,6 @@ using glm::mat4;
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
-
-struct Camera {
-  float focalLength;
-  vec4 position;
-  vec3 rotation;
-  float movementSpeed;
-  float rotationSpeed;
-};
 
 struct Pixel {
   int x;
@@ -54,7 +47,6 @@ struct Vertex {
 
 void Update();
 void Draw(screen* screen);
-void TransformationMatrix(mat4 &M);
 void VertexShader(const Vertex &v, Pixel &p);
 void PixelShader(screen* screen, const Pixel &p);
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
@@ -67,20 +59,20 @@ void DrawRows(const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels)
 void DrawPolygon(screen *screen, const vector<Vertex>& vertices);
 
 vector<Shape *> shapes;
-Camera camera;
+Camera *camera;
 
 vec4 lightPos(0, -0.5, -0.7, 1);
 vec3 lightPower = 5.f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 
 int main(int argc, char* argv[]) {
-  camera = {
-    SCREEN_HEIGHT,
+  camera = new Camera(
     vec4(0, 0, -3.001, 1),
     vec3(0, 0, 0),
+    SCREEN_HEIGHT,
     0.001,
-    0.001,
-  };
+    0.001
+  );
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   
@@ -101,8 +93,7 @@ int main(int argc, char* argv[]) {
 /*Place your drawing here*/
 void Draw(screen* screen) {
   /* Clear buffer */
-  mat4 transMat;
-  TransformationMatrix(transMat);
+  mat4 transMat = camera->getTransformationMatrix();
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
   memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(uint32_t));
   
@@ -132,70 +123,21 @@ void Update() {
   t = t2;
   cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
-
-  const Uint8 *keystate = SDL_GetKeyboardState(NULL);
-  if (keystate[SDL_SCANCODE_W]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x -= camera.rotationSpeed * dt;
-    } else {
-      camera.position.z += camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_S]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x += camera.rotationSpeed * dt;
-    } else {
-      camera.position.z -= camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_A]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y += camera.rotationSpeed * dt;
-    } else {
-      camera.position.x -= camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_D]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y -= camera.rotationSpeed * dt;
-    } else {
-      camera.position.x += camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_Q]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.z += camera.rotationSpeed * dt;
-    } else {
-      camera.position.y += camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_E]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.z -= camera.rotationSpeed * dt;
-    } else {
-      camera.position.y -= camera.movementSpeed * dt;
-    }
-  }
+  camera->update(dt);
 }
 
 void VertexShader(const Vertex &v, Pixel &p) {
   vec4 pos = v.position;
   p.zinv = 1.f / pos.z;
-  p.x = int(camera.focalLength * pos.x * p.zinv) + (SCREEN_WIDTH / 2);
-  p.y = int(camera.focalLength * pos.y * p.zinv) + (SCREEN_HEIGHT / 2);
+  p.x = int(camera->focalLength * pos.x * p.zinv) + (SCREEN_WIDTH / 2);
+  p.y = int(camera->focalLength * pos.y * p.zinv) + (SCREEN_HEIGHT / 2);
   p.pos3d = v.position;
   p.normal = v.normal;
   p.reflectance = v.reflectance;
 }
 
 void PixelShader(screen *screen, const Pixel &p) {
-  mat4 transMat;
-  TransformationMatrix(transMat);
+  mat4 transMat = camera->getTransformationMatrix();
   vec3 r = vec3(transMat * lightPos - p.pos3d);
   float rLen = glm::length(r);
   vec4 rNorm = vec4(r / rLen, 1);
@@ -271,24 +213,6 @@ void DrawPolygonEdges(screen *screen, const vector<vec4> &vertices) {
     DrawLineSDL(screen, projectedVertices[i], projectedVertices[j], color);
   }
 }
-
-mat4 CalcRotationMatrix(vec3 rotation) {
-  float x = rotation.x;
-  float y = rotation.y;
-  float z = rotation.z;
-  mat4 Rx = mat4(vec4(1, 0, 0, 0), vec4(0, cosf(x), sinf(x), 0), vec4(0, -sinf(x), cosf(x), 0), vec4(0, 0, 0, 1));
-  mat4 Ry = mat4(vec4(cosf(y), 0, -sinf(y), 0), vec4(0, 1, 0, 0), vec4(sinf(y), 0, cosf(y), 0), vec4(0 , 0, 0, 1));
-  mat4 Rz = mat4(vec4(cosf(z), sinf(z), 0, 0), vec4(-sinf(z), cosf(z), 0, 0), vec4(0, 0, 1, 0), vec4(0, 0, 0, 1));
-  return Rz * Ry * Rx;
-}
-
-void TransformationMatrix(mat4 &M) {
-  mat3 eye = mat3(1);
-  mat4 rot = CalcRotationMatrix(camera.rotation);
-  rot[3] = -1.f * camera.position;
-  M = rot;
-}
-
 
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
   // 1. Find max and min y-value of the polygon

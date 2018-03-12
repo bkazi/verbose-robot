@@ -11,6 +11,7 @@
 #include "SDLauxiliary.h"
 #include "TestModel.h"
 #include "objects.h"
+#include "camera.h"
 
 using namespace std;
 using glm::mat3;
@@ -36,22 +37,10 @@ vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
 float apertureSize = 0.1;
 
 /* ----------------------------------------------------------------------------*/
-/* STRUCTS                                                                     */
-struct Camera {
-  float focalLength;
-  vec4 position;
-  mat3 R;
-  vec3 rotation;
-  vec3 movement;
-  float movementSpeed;
-  float rotationSpeed;
-};
-
-/* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update(Camera &camera, screen *screen);
-void Draw(screen *screen, Camera camera);
+void Update();
+void Draw(screen *screen);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec);
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce, bool spec);
@@ -64,6 +53,8 @@ void LoadModel(vector<Shape *> &scene, const char *path);
 
 float samples = 0;
 vector<Shape *> shapes;
+Camera *camera;
+
 int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
@@ -74,29 +65,27 @@ int main(int argc, char *argv[]) {
     LoadModel(shapes, path);
   }
 
-  Camera camera = {
+  camera = new Camera(
+    vec4(0, 0, -3.001, 1),
+    vec3(0, 0, 0),
     SCREEN_HEIGHT,
-    vec4(0, 0, -3, 1),
-    mat3(1),
-    vec3(0, 0, 0),
-    vec3(0, 0, 0),
     0.001,
-    0.001,
-  };
+    0.001
+  );
 
   srand(42);
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 #ifdef LIVE
   while (NoQuitMessageSDL()) {
-    Update(camera, screen);
-    Draw(screen, camera);
+    Update();
+    Draw(screen);
     SDL_Renderframe(screen);
   }
 #else
-  Update(camera, screen);
-  Draw(screen, camera);
+  Update();
+  Draw(screen);
   SDL_Renderframe(screen);
-  Update(camera, screen);
+  Update();
 #endif
 
   SDL_SaveImage(screen, "screenshot.bmp");
@@ -106,7 +95,7 @@ int main(int argc, char *argv[]) {
 }
 
 /*Place your drawing here*/
-void Draw(screen *screen, Camera camera) {
+void Draw(screen *screen) {
   samples++;
 
   int x, y;
@@ -115,13 +104,13 @@ void Draw(screen *screen, Camera camera) {
     for (x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
       vec3 color = vec3(0);
 #if NUM_RAYS <= 1
-      vec4 direction = glm::normalize(vec4(vec3(x, y, camera.focalLength) * camera.R, 1));
-      color += Light(camera.position, direction, 0);
+      vec4 direction = glm::normalize(vec4(x, y, camera->focalLength, 1) * camera->getRotationMatrix());
+      color += Light(camera->position, direction, 0);
 #else
       for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
         for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-          vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera.focalLength) * camera.R, 1));
-          color += Light(camera.position, direction, 0);
+          vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera->focalLength) * camera->getRotationMatrix(), 1));
+          color += Light(camera->position, direction, 0);
         }
       }
       color /= NUM_RAYS * NUM_RAYS;
@@ -132,7 +121,7 @@ void Draw(screen *screen, Camera camera) {
 }
 
 /*Place updates of parameters here*/
-void Update(Camera &camera, screen *screen) {
+void Update() {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -141,65 +130,7 @@ void Update(Camera &camera, screen *screen) {
   cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
-  camera.movement = vec3(0);
-  vec3 tempRot = camera.rotation;
-
-  const Uint8 *keystate = SDL_GetKeyboardState(NULL);
-  if (keystate[SDL_SCANCODE_W]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x -= camera.rotationSpeed * dt;
-    } else {
-      camera.movement.z += camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_S]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.x += camera.rotationSpeed * dt;
-    } else {
-      camera.movement.z -= camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_A]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y += camera.rotationSpeed * dt;
-    } else {
-      camera.movement.x -= camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_D]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.y -= camera.rotationSpeed * dt;
-    } else {
-      camera.movement.x += camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_Q]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.z += camera.rotationSpeed * dt;
-    } else {
-      camera.movement.y += camera.movementSpeed * dt;
-    }
-  }
-
-  if (keystate[SDL_SCANCODE_E]) {
-    if (keystate[SDL_SCANCODE_LSHIFT] || keystate[SDL_SCANCODE_RSHIFT]) {
-      camera.rotation.z -= camera.rotationSpeed * dt;
-    } else {
-      camera.movement.y -= camera.movementSpeed * dt;
-    }
-  }
-
-  camera.R = CalcRotationMatrix(camera.rotation.x, camera.rotation.y, camera.rotation.z);
-  camera.position += vec4(vec3(camera.movement * camera.R), 0);
-  if (camera.movement != vec3(0) || camera.rotation != tempRot) {
-    memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
-    memset(screen->pixels, 0, screen->height * screen->width * sizeof(vec3));
-    samples = 0;
-  }
+  camera->update(dt);
 }
 
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection) {
@@ -275,13 +206,6 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     }
   }
   return vec3(0);
-}
-
-mat3 CalcRotationMatrix(float x, float y, float z) {
-  mat3 Rx = mat3(vec3(1, 0, 0), vec3(0, cosf(x), sinf(x)), vec3(0, -sinf(x), cosf(x)));
-  mat3 Ry = mat3(vec3(cosf(y), 0, -sinf(y)), vec3(0, 1, 0), vec3(sinf(y), 0, cosf(y)));
-  mat3 Rz = mat3(vec3(cosf(z), sinf(z), 0), vec3(-sinf(z), cosf(z), 0), vec3(0, 0, 1));
-  return Rx * Ry * Rz;
 }
 
 vec3 uniformSampleHemisphere(const float &r1, const float &r2) {
