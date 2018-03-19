@@ -69,7 +69,6 @@ int main(int argc, char *argv[]) {
 
   scene = new Scene();
   scene->LoadTest();
-
   if (argc >= 2) {
     const string path = argv[1];
     scene->LoadModel(path);
@@ -84,7 +83,7 @@ int main(int argc, char *argv[]) {
     0.001,
     0.001
   );
-
+  
   srand(42);
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 #ifdef LIVE
@@ -181,8 +180,10 @@ std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);
 
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
+
   Intersection intersection;
   if (scene->intersect(new Ray(start + dir * 1e-4f, dir), intersection)) {
+    
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
     if (bounce > MIN_BOUNCES &&

@@ -25,22 +25,31 @@ Scene::Scene(vector<Object *> objects) : objects(objects) {}
 
 bool Scene::intersect(Ray *ray, Intersection &intersection) {
   Object *object = bvh->intersect(ray, objects);
-
   Primitive *closestPrimitive = NULL;
-  float minDist = INFINITY;
 
-  for (uint32_t i = 0; i < object->primitives.size(); ++i) {
-    float dist = object->primitives[i]->intersect(ray);
-    assert(dist != INFINITY);
-    if (dist < minDist) {
-      minDist = dist;
-      closestPrimitive = object->primitives[i];
+  if (object != NULL) {
+    float minDist = INFINITY;
+
+    cout << "0" << endl;
+    for (uint32_t i = 0; i < object->primitives.size(); ++i) {
+      cout << "1" << endl;
+      float dist = object->primitives[i]->intersect(ray);
+      cout << "2" << endl;
+      assert(dist != INFINITY);
+      cout << "3" << endl;
+      if (dist < minDist) {
+        cout << "4" << endl;
+        minDist = dist;
+        cout << "5" << endl;
+        closestPrimitive = object->primitives[i];
+        cout << "6" << endl;
+      }
     }
-  }
 
-  intersection.primitive = closestPrimitive;
-  intersection.distance = minDist;
-  intersection.position = ray->position + minDist * ray->direction;
+    intersection.primitive = closestPrimitive;
+    intersection.distance = minDist;
+    intersection.position = ray->position + minDist * ray->direction;
+  }
   return closestPrimitive != NULL;
 }
 
