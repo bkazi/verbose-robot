@@ -60,6 +60,4 @@ public:
     float intersects(const glm::vec4 start, const glm::vec4 direction);
 };
 
-void LoadModel(std::vector<Shape *> &scene, std::string path);
-
 #endif

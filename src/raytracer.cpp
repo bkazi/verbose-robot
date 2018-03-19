@@ -10,6 +10,7 @@
 #include <SDL.h>
 #include "SDLauxiliary.h"
 #include "TestModel.h"
+#include "scene.h"
 #include "objects.h"
 #include "camera.h"
 
@@ -52,17 +53,18 @@ float max3(vec3);
 void LoadModel(vector<Shape *> &scene, const char *path);
 
 float samples = 0;
-vector<Shape *> shapes;
+Scene *scene;
 Camera *camera;
 
 int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
-  LoadTestModel(shapes);
+  scene = new Scene();
+  scene->LoadTestModel();
 
   if (argc >= 2) {
     const string path = argv[1];
-    LoadModel(shapes, path);
+    scene->LoadModel(path);
   }
 
   camera = new Camera(
@@ -137,8 +139,8 @@ bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection
   closestIntersection.distance = m;
   closestIntersection.shapeIndex = -1;
 
-  for (uint index = 0; index < shapes.size(); index++) {
-    Shape *shape = shapes[index];
+  for (uint index = 0; index < scene->shapes.size(); index++) {
+    Shape *shape = scene->shapes[index];
     float dist = shape->intersects(start, dir);
     if (dist > 0 && dist < closestIntersection.distance) {
       closestIntersection.distance = dist;
@@ -156,7 +158,7 @@ std::uniform_real_distribution<float> distribution(0, 1);
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
   if (ClosestIntersection(start + dir * 1e-4f, dir, intersection)) {
-    Shape *obj = shapes[intersection.shapeIndex];
+    Shape *obj = scene->shapes[intersection.shapeIndex];
     // Russian roulette termination
     float U = rand() / (float) RAND_MAX;
     if (bounce > MIN_BOUNCES && (bounce > MAX_BOUNCES || U > max3(obj->color))) {
@@ -171,7 +173,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     vec3 directDiffuseLight = vec3(0);
     vec3 directSpecularLight = vec3(0);
 
-    for (Shape *light : shapes) {
+    for (Shape *light : scene->shapes) {
       if (light->isLight()) {
         vec4 lightPos = light->randomPoint();
         vec4 lightVec = lightPos - hitPos;
@@ -179,7 +181,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
         vec4 lightDir = lightVec / lightDist;
         Intersection lightIntersection;
         if (ClosestIntersection(hitPos + lightDir * 1e-4f, lightDir, lightIntersection)) {
-          if (light == shapes[lightIntersection.shapeIndex]) {
+          if (light == scene->shapes[lightIntersection.shapeIndex]) {
             vec4 reflected = glm::reflect(lightDir, normal);
             directSpecularLight += light->emit * max(powf(glm::dot(reflected, dir), obj->shininess), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
             directDiffuseLight += light->emit * max(glm::dot(lightDir, normal), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
