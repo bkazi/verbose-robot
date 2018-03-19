@@ -30,19 +30,12 @@ bool Scene::intersect(Ray *ray, Intersection &intersection) {
   if (object != NULL) {
     float minDist = INFINITY;
 
-    cout << "0" << endl;
     for (uint32_t i = 0; i < object->primitives.size(); ++i) {
-      cout << "1" << endl;
       float dist = object->primitives[i]->intersect(ray);
-      cout << "2" << endl;
       assert(dist != INFINITY);
-      cout << "3" << endl;
       if (dist < minDist) {
-        cout << "4" << endl;
         minDist = dist;
-        cout << "5" << endl;
         closestPrimitive = object->primitives[i];
-        cout << "6" << endl;
       }
     }
 
