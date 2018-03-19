@@ -5,9 +5,16 @@
 #include <cstdint>
 #include <climits>
 #include <cmath>
+#include <SDL.h>
+#include <limits.h>
+#include <math.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 #include <algorithm>
 #include <glm/glm.hpp>
-#include <SDL.h>
+#include <iostream>
+#include <random>
 #include "SDLauxiliary.h"
 #include "TestModel.h"
 #include "scene.h"
@@ -33,7 +40,7 @@ using glm::vec4;
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
-vec3 lightColor = 14.f * vec3(1, 1, 1); 
+vec3 lightColor = 14.f * vec3(1, 1, 1);
 vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
 float apertureSize = 0.1;
 
@@ -44,13 +51,14 @@ void Update();
 void Draw(screen *screen);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec);
-vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce, bool spec);
+vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce,
+                   bool spec);
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, int bounce);
 float max3(vec3);
-void LoadModel(vector<Shape *> &scene, const char *path);
+void LoadModel(vector<Object *> &scene, const char *path);
 
 float samples = 0;
 Scene *scene;
@@ -66,6 +74,8 @@ int main(int argc, char *argv[]) {
     const string path = argv[1];
     scene->LoadModel(path);
   }
+
+  scene->createBVH();
 
   camera = new Camera(
     vec4(0, 0, -3.001, 1),
@@ -101,9 +111,9 @@ void Draw(screen *screen) {
   samples++;
 
   int x, y;
-  #pragma omp parallel for private(x, y)
-  for (y = -SCREEN_HEIGHT/2; y < SCREEN_HEIGHT/2; y++) {
-    for (x = -SCREEN_WIDTH/2; x < SCREEN_WIDTH/2; x++) {
+#pragma omp parallel for private(x, y)
+  for (y = -SCREEN_HEIGHT / 2; y < SCREEN_HEIGHT / 2; y++) {
+    for (x = -SCREEN_WIDTH / 2; x < SCREEN_WIDTH / 2; x++) {
       vec3 color = vec3(0);
 #if NUM_RAYS <= 1
       vec4 direction = glm::normalize(vec4(x, y, camera->focalLength, 1) * camera->getRotationMatrix());
@@ -117,7 +127,8 @@ void Draw(screen *screen) {
       }
       color /= NUM_RAYS * NUM_RAYS;
 #endif
-      PutPixelSDL(screen, x + SCREEN_WIDTH/2, y + SCREEN_HEIGHT/2, color, samples);
+      PutPixelSDL(screen, x + SCREEN_WIDTH / 2, y + SCREEN_HEIGHT / 2, color,
+                  samples);
     }
   }
 }
@@ -135,56 +146,81 @@ void Update() {
   camera->update(dt);
 }
 
-bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection) {
+bool ClosestIntersection(vec4 start, vec4 dir,
+                         Intersection &closestIntersection) {
   closestIntersection.distance = m;
-  closestIntersection.shapeIndex = -1;
+  closestIntersection.objectIndex = -1;
 
-  for (uint index = 0; index < scene->shapes.size(); index++) {
-    Shape *shape = scene->shapes[index];
-    float dist = shape->intersects(start, dir);
-    if (dist > 0 && dist < closestIntersection.distance) {
-      closestIntersection.distance = dist;
-      closestIntersection.shapeIndex = index;
-      closestIntersection.position = start + dist * dir;
+  vector<uint32_t> indices = bvh->intersect(start, dir);
+  // for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
+  //   float dist = scene[i]->primitives[j]->intersects(start, dir);
+  //   if (dist > 0 && dist < closestIntersection.distance) {
+  //     closestIntersection.distance = dist;
+  //     closestIntersection.objectIndex = i;
+  //     closestIntersection.primitiveIndex = j;
+  //     closestIntersection.position = start + dist * dir;
+  //   }
+  // }
+
+  for (uint i = 0; i < indices.size(); ++i) {
+    for (uint j = 0; j < scene[indices[i]]->primitives.size(); ++j) {
+      float dist = scene[indices[i]]->primitives[j]->intersects(start, dir);
+      if (dist > 0 && dist < closestIntersection.distance) {
+        closestIntersection.distance = dist;
+        closestIntersection.objectIndex = indices[i];
+        closestIntersection.primitiveIndex = j;
+        closestIntersection.position = start + dist * dir;
+      }
     }
   }
 
-  return closestIntersection.shapeIndex != -1;
+  return closestIntersection.objectIndex != -1;
 }
 
-std::default_random_engine generator; 
+std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);
 
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
   if (ClosestIntersection(start + dir * 1e-4f, dir, intersection)) {
-    Shape *obj = scene->shapes[intersection.shapeIndex];
+    Primitive *primitive = scene[intersection.objectIndex]
+                               ->primitives[intersection.primitiveIndex];
     // Russian roulette termination
-    float U = rand() / (float) RAND_MAX;
-    if (bounce > MIN_BOUNCES && (bounce > MAX_BOUNCES || U > max3(obj->color))) {
+    float U = rand() / (float)RAND_MAX;
+    if (bounce > MIN_BOUNCES &&
+        (bounce > MAX_BOUNCES || U > max3(primitive->color))) {
       // terminate
       return vec3(0);
     }
-    
+
     vec4 hitPos = intersection.position;
-    vec4 normal = obj->getNormal(hitPos);
+    vec4 normal = primitive->getNormal(hitPos);
 
     // Direct Light
     vec3 directDiffuseLight = vec3(0);
     vec3 directSpecularLight = vec3(0);
-
-    for (Shape *light : scene->shapes) {
-      if (light->isLight()) {
-        vec4 lightPos = light->randomPoint();
-        vec4 lightVec = lightPos - hitPos;
-        float lightDist = glm::length(lightVec);
-        vec4 lightDir = lightVec / lightDist;
-        Intersection lightIntersection;
-        if (ClosestIntersection(hitPos + lightDir * 1e-4f, lightDir, lightIntersection)) {
-          if (light == scene->shapes[lightIntersection.shapeIndex]) {
-            vec4 reflected = glm::reflect(lightDir, normal);
-            directSpecularLight += light->emit * max(powf(glm::dot(reflected, dir), obj->shininess), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
-            directDiffuseLight += light->emit * max(glm::dot(lightDir, normal), 0.0f) / (float) (4 * M_PI * powf(lightDist, 2));
+    for (Object *object : scene) {
+      for (Primitive *light : object->primitives) {
+        if (light->isLight()) {
+          vec4 lightPos = light->randomPoint();
+          vec4 lightVec = lightPos - hitPos;
+          float lightDist = glm::length(lightVec);
+          vec4 lightDir = lightVec / lightDist;
+          Intersection lightIntersection;
+          if (ClosestIntersection(hitPos + lightDir * 1e-4f, lightDir,
+                                  lightIntersection)) {
+            if (light == scene[lightIntersection.objectIndex]
+                             ->primitives[lightIntersection.primitiveIndex]) {
+              vec4 reflected = glm::reflect(lightDir, normal);
+              directSpecularLight +=
+                  light->emit *
+                  max(powf(glm::dot(reflected, dir), primitive->shininess),
+                      0.0f) /
+                  (float)(4 * M_PI * powf(lightDist, 2));
+              directDiffuseLight += light->emit *
+                                    max(glm::dot(lightDir, normal), 0.0f) /
+                                    (float)(4 * M_PI * powf(lightDist, 2));
+            }
           }
         }
       }
@@ -196,36 +232,38 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     createCoordinateSystem(vec3(normal), Nt, Nb);
     float r1 = distribution(generator);
     float r2 = distribution(generator);
-    vec3 sample = uniformSampleHemisphere(r1, r2); 
+    vec3 sample = uniformSampleHemisphere(r1, r2);
     vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
     vec4 rayDir = vec4(sampleWorld, 1);
-    indirectLight += obj->Kd * Light(hitPos, rayDir, bounce + 1);
+    indirectLight += primitive->Kd * Light(hitPos, rayDir, bounce + 1);
 
     if (bounce == 0) {
-      return obj->emit + obj->color * (obj->Kd * directDiffuseLight + obj->Ka * indirectLight + obj->Ks * directSpecularLight);
+      return primitive->emit +
+             primitive->color * (primitive->Kd * directDiffuseLight +
+                                 primitive->Ka * indirectLight +
+                                 primitive->Ks * directSpecularLight);
     } else {
-      return obj->color * (obj->Kd * directDiffuseLight + obj->Ka * indirectLight);
+      return primitive->color * (primitive->Kd * directDiffuseLight +
+                                 primitive->Ka * indirectLight);
     }
   }
   return vec3(0);
 }
 
 vec3 uniformSampleHemisphere(const float &r1, const float &r2) {
-  float sinTheta = sqrtf(1 - r1 * r1); 
-  float phi = 2 * M_PI * r2; 
-  float x = sinTheta * cosf(phi); 
-  float z = sinTheta * sinf(phi); 
-  return vec3(x, r1, z); 
+  float sinTheta = sqrtf(1 - r1 * r1);
+  float phi = 2 * M_PI * r2;
+  float x = sinTheta * cosf(phi);
+  float z = sinTheta * sinf(phi);
+  return vec3(x, r1, z);
 }
 
-void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) { 
-  if (fabs(N.x) > fabs(N.y)) 
-      Nt = glm::normalize(vec3(N.z, 0, -N.x)); 
-  else 
-      Nt = glm::normalize(vec3(0, -N.z, N.y)); 
-  Nb = glm::cross(N, Nt); 
+void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
+  if (fabs(N.x) > fabs(N.y))
+    Nt = glm::normalize(vec3(N.z, 0, -N.x));
+  else
+    Nt = glm::normalize(vec3(0, -N.z, N.y));
+  Nb = glm::cross(N, Nt);
 }
 
-float max3(vec3 v) {
-  return max(v.x, max(v.y, v.z));
-}
+float max3(vec3 v) { return max(v.x, max(v.y, v.z)); }
