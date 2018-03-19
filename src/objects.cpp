@@ -8,11 +8,6 @@ using glm::mat3;
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
-using tinyobj::attrib_t;
-using tinyobj::index_t;
-using tinyobj::material_t;
-using tinyobj::real_t;
-using tinyobj::shape_t;
 
 /* OBJECT CLASS IMPLEMENTATION */
 Object::Object(vector<Primitive *> primitives) : primitives(primitives){};

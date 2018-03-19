@@ -20,7 +20,7 @@ Extents::Extents() {
     d[i][0] = INFINITY, d[i][1] = -INFINITY;
 }
 
-bool Extents::intersect(const glm::vec4 start, const glm::vec4 direction,
+bool Extents::intersect(Ray *ray,
                    float *precomputedNumerator, float *precomputeDenominator,
                    float &tNear, float &tFar) {
   for (uint8_t i = 0; i < normalSize; ++i) {
@@ -36,7 +36,6 @@ bool Extents::intersect(const glm::vec4 start, const glm::vec4 direction,
 }
 
 BVH::BVH(vector<Object *> scene) {
-  sceneSize = scene.size();
   extents = new Extents[scene.size()];
   for (uint32_t i = 0; i < scene.size(); ++i) {
     for (uint8_t j = 0; j < normalSize; ++j) {
@@ -46,28 +45,28 @@ BVH::BVH(vector<Object *> scene) {
   }
 }
 
-vector<uint32_t> BVH::intersect(const glm::vec4 start,
-                       const glm::vec4 direction) {
+bool BVH::intersect(Ray *ray, Intersection &intersection, vector<Object *> scene) {
   float tClosest = INFINITY;
-  vector<uint32_t> hitObjects;
   float precomputedNumerator[normalSize], precomputeDenominator[normalSize];
+
+  intersection.distance = 0;
 
   for (uint8_t i = 0; i < normalSize; ++i) {
     precomputedNumerator[i] =
-        glm::dot(planeSetNormals[i], vec3(start.x, start.y, start.z));
+        glm::dot(planeSetNormals[i], vec3(ray->position.x, ray->position.y, ray->position.z));
     precomputeDenominator[i] =
-        glm::dot(planeSetNormals[i], vec3(direction.x, direction.y, direction.z));
+        glm::dot(planeSetNormals[i], vec3(ray->direction.x, ray->direction.y, ray->direction.z));
   }
 
-  for (uint32_t i = 0; i < sceneSize; ++i) {
+  for (uint32_t i = 0; i < scene.size(); ++i) {
     // __sync_fetch_and_add(&numRayVolumeTests, 1); -- I no understand
     float tNear = -INFINITY, tFar = INFINITY;
-    if (extents[i].intersect(start, direction, precomputedNumerator,
+    if (extents[i].intersect(ray, precomputedNumerator,
                              precomputeDenominator, tNear, tFar)) {
       if (tNear < tClosest) tClosest = tNear;
-      hitObjects.push_back(i);
+      // TODO get ray hit
     }
   }
 
-  return hitObjects;
+  return intersection.distance != 0;
 }

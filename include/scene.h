@@ -4,14 +4,21 @@
 #include <vector>
 
 #include "objects.h"
+#include "bvh.h"
+#include "ray.h"
 
 struct Scene {
 public:
-    std::vector<Shape *> shapes;
+    std::vector<Object *> objects;
     Scene();
-    Scene(std::vector<Shape *> shapes);
+    Scene(std::vector<Object *> objects);
+    bool intersect(Ray *ray, Intersection &intersection);
+    void createBVH();
     void LoadModel(std::string path);
-    void LoadTestModel();
+    void LoadTest();
+
+private:
+    BVH *bvh;
 };
 
 #endif

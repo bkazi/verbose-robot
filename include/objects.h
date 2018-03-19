@@ -5,13 +5,6 @@
 #include <string>
 #include <vector>
 
-struct Intersection {
-  glm::vec4 position;
-  float distance;
-  int objectIndex;
-  int primitiveIndex;
-};
-
 struct Primitive {
 public:
   glm::vec3 emit;

@@ -4,10 +4,11 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "objects.h"
+#include "ray.h"
 
 struct Extents {
   Extents();
-  bool intersect(const glm::vec4 start, const glm::vec4 direction,float *precomputedNumerator, float *precomputeDenominator,
+  bool intersect(Ray *ray, float *precomputedNumerator, float *precomputeDenominator,
                    float &tNear, float &tFar);
   float d[7][2];
 };
@@ -19,7 +20,7 @@ struct BVH {
 
  public:
   BVH(std::vector<Object *> scene);
-  std::vector<uint32_t> intersect(const glm::vec4 start, const glm::vec4 direction);
+  bool intersect(Ray *ray, Intersection &intersection, std::vector<Object *> scene);
 };
 
 #endif

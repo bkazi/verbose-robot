@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   scene = new Scene();
-  scene->LoadTestModel();
+  scene->LoadTest();
 
   if (argc >= 2) {
     const string path = argv[1];
@@ -146,60 +146,58 @@ void Update() {
   camera->update(dt);
 }
 
-bool ClosestIntersection(vec4 start, vec4 dir,
-                         Intersection &closestIntersection) {
-  closestIntersection.distance = m;
-  closestIntersection.objectIndex = -1;
+// bool ClosestIntersection(Ray *ray,
+//                          Intersection &closestIntersection) {
+//   closestIntersection.distance = m;
+//   closestIntersection.objectIndex = -1;
 
-  vector<uint32_t> indices = bvh->intersect(start, dir);
-  // for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
-  //   float dist = scene[i]->primitives[j]->intersects(start, dir);
-  //   if (dist > 0 && dist < closestIntersection.distance) {
-  //     closestIntersection.distance = dist;
-  //     closestIntersection.objectIndex = i;
-  //     closestIntersection.primitiveIndex = j;
-  //     closestIntersection.position = start + dist * dir;
-  //   }
-  // }
+//   Primitive *primitive = scene->intersect(ray);
+//   // for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
+//   //   float dist = scene[i]->primitives[j]->intersects(start, dir);
+//   //   if (dist > 0 && dist < closestIntersection.distance) {
+//   //     closestIntersection.distance = dist;
+//   //     closestIntersection.objectIndex = i;
+//   //     closestIntersection.primitiveIndex = j;
+//   //     closestIntersection.position = start + dist * dir;
+//   //   }
+//   // }
 
-  for (uint i = 0; i < indices.size(); ++i) {
-    for (uint j = 0; j < scene[indices[i]]->primitives.size(); ++j) {
-      float dist = scene[indices[i]]->primitives[j]->intersects(start, dir);
-      if (dist > 0 && dist < closestIntersection.distance) {
-        closestIntersection.distance = dist;
-        closestIntersection.objectIndex = indices[i];
-        closestIntersection.primitiveIndex = j;
-        closestIntersection.position = start + dist * dir;
-      }
-    }
-  }
+//   for (uint i = 0; i < indices.size(); ++i) {
+//     for (uint j = 0; j < scene->objects[indices[i]]->primitives.size(); ++j) {
+//       float dist = scene->objects[indices[i]]->primitives[j]->intersects(start, dir);
+//       if (dist > 0 && dist < closestIntersection.distance) {
+//         closestIntersection.distance = dist;
+//         closestIntersection.objectIndex = indices[i];
+//         closestIntersection.primitiveIndex = j;
+//         closestIntersection.position = start + dist * dir;
+//       }
+//     }
+//   }
 
-  return closestIntersection.objectIndex != -1;
-}
+//   return closestIntersection.objectIndex != -1;
+// }
 
 std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);
 
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
-  if (ClosestIntersection(start + dir * 1e-4f, dir, intersection)) {
-    Primitive *primitive = scene[intersection.objectIndex]
-                               ->primitives[intersection.primitiveIndex];
+  if (scene->intersect(new Ray(start + dir * 1e-4f, dir), intersection)) {
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
     if (bounce > MIN_BOUNCES &&
-        (bounce > MAX_BOUNCES || U > max3(primitive->color))) {
+        (bounce > MAX_BOUNCES || U > max3(intersection.primitive->color))) {
       // terminate
       return vec3(0);
     }
 
     vec4 hitPos = intersection.position;
-    vec4 normal = primitive->getNormal(hitPos);
+    vec4 normal = intersection.primitive->getNormal(hitPos);
 
     // Direct Light
     vec3 directDiffuseLight = vec3(0);
     vec3 directSpecularLight = vec3(0);
-    for (Object *object : scene) {
+    for (Object *object : scene->objects) {
       for (Primitive *light : object->primitives) {
         if (light->isLight()) {
           vec4 lightPos = light->randomPoint();
@@ -207,14 +205,13 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
           float lightDist = glm::length(lightVec);
           vec4 lightDir = lightVec / lightDist;
           Intersection lightIntersection;
-          if (ClosestIntersection(hitPos + lightDir * 1e-4f, lightDir,
+          if (scene->intersect(new Ray(hitPos + lightDir * 1e-4f, lightDir),
                                   lightIntersection)) {
-            if (light == scene[lightIntersection.objectIndex]
-                             ->primitives[lightIntersection.primitiveIndex]) {
+            if (light == lightIntersection.primitive) {
               vec4 reflected = glm::reflect(lightDir, normal);
               directSpecularLight +=
                   light->emit *
-                  max(powf(glm::dot(reflected, dir), primitive->shininess),
+                  max(powf(glm::dot(reflected, dir), intersection.primitive->shininess),
                       0.0f) /
                   (float)(4 * M_PI * powf(lightDist, 2));
               directDiffuseLight += light->emit *
@@ -235,16 +232,16 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     vec3 sample = uniformSampleHemisphere(r1, r2);
     vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
     vec4 rayDir = vec4(sampleWorld, 1);
-    indirectLight += primitive->Kd * Light(hitPos, rayDir, bounce + 1);
+    indirectLight += intersection.primitive->Kd * Light(hitPos, rayDir, bounce + 1);
 
     if (bounce == 0) {
-      return primitive->emit +
-             primitive->color * (primitive->Kd * directDiffuseLight +
-                                 primitive->Ka * indirectLight +
-                                 primitive->Ks * directSpecularLight);
+      return intersection.primitive->emit +
+             intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
+                                 intersection.primitive->Ka * indirectLight +
+                                 intersection.primitive->Ks * directSpecularLight);
     } else {
-      return primitive->color * (primitive->Kd * directDiffuseLight +
-                                 primitive->Ka * indirectLight);
+      return intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
+                                 intersection.primitive->Ka * indirectLight);
     }
   }
   return vec3(0);

@@ -1,26 +1,47 @@
+#include <iostream>
+
 #include "scene.h"
-#include "TesModel.h"
+#include "TestModel.h"
 #include "tiny_obj_loader.h"
+#include "bvh.h"
 
 using namespace std;
+using glm::vec2;
+using glm::vec3;
+using glm::vec4;
+using glm::dot;
+using tinyobj::attrib_t;
+using tinyobj::index_t;
+using tinyobj::material_t;
+using tinyobj::real_t;
+using tinyobj::shape_t;
 
 Scene::Scene() {
-    vector<Shape *> s;
-    shapes = s;
+    vector<Object *> o;
+    objects = o;
 }
 
-Scene::Scene(vector<Shape *> shapes): shapes(shapes) {}
+Scene::Scene(vector<Object *> objects): objects(objects) {}
 
-Scene::LoadTestModel() {
-    LoadTestModel(shapes);
+bool Scene::intersect(Ray *ray, Intersection &intersection) {
+  return bvh->intersect(ray, intersection, objects);
+}
+
+void Scene::createBVH() {
+  bvh = new BVH(objects);
+}
+
+void Scene::LoadTest() {
+    LoadTestModel(objects);
 }
 
 /* Load Model into scene */
-void Scene::LoadModel(vector<Shape *> &scene, string path) {
+void Scene::LoadModel(string path) {
   attrib_t attrib;
   vector<shape_t> shapes;
   vector<material_t> materials;
   string error;
+
   // NB: Lib automatically triangulises -- can be disabled, but is default true
   bool ret = tinyobj::LoadObj(
     &attrib,
@@ -30,15 +51,20 @@ void Scene::LoadModel(vector<Shape *> &scene, string path) {
     path.c_str(),
     path.substr(0, path.find_last_of('/') + 1).c_str()
   );
+
   if (!error.empty()) {
     cerr << error << endl;
   }
+
   if (!ret) {
     exit(1);
   }
 
+  vector<Primitive *> primitives;
+
   // For each shape?
   for (size_t s = 0; s < shapes.size(); s++) {
+    primitives.clear();
     size_t index_offset = 0;
 
     // For each face
@@ -81,7 +107,7 @@ void Scene::LoadModel(vector<Shape *> &scene, string path) {
       // per-face material
       tinyobj::material_t material = materials[shapes[s].mesh.material_ids[f]];
 
-      scene.push_back(new Triangle(
+      primitives.push_back(new Triangle(
         verticies[0],
         verticies[2],
         verticies[1],
@@ -93,5 +119,7 @@ void Scene::LoadModel(vector<Shape *> &scene, string path) {
         dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2])) / 3.0f
       )); 
     }
+
+    objects.push_back(new Object(primitives));
   }
 }
