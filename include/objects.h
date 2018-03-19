@@ -5,6 +5,21 @@
 #include <string>
 #include <vector>
 
+struct Primitive; // Forward declare to fix problems
+
+struct Ray {
+public:
+    glm::vec4 position;
+    glm::vec4 direction;
+    Ray(glm::vec4 position, glm::vec4 direction);
+};
+
+struct Intersection {
+  glm::vec4 position;
+  float distance;
+  Primitive *primitive;
+};
+
 struct Primitive {
 public:
   glm::vec3 emit;
@@ -16,7 +31,7 @@ public:
 
   Primitive(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
         float Kd);
-  virtual float intersects(const glm::vec4 start, const glm::vec4 direction);
+  float intersect(Ray *ray);
   virtual glm::vec4 randomPoint();
   virtual glm::vec4 getNormal(const glm::vec4 &p);
   virtual bool isLight();
@@ -44,7 +59,7 @@ class Triangle : public Primitive {
 
   glm::vec4 randomPoint();
 
-  float intersects(const glm::vec4 start, const glm::vec4 direction);
+  float intersect(Ray *ray);
 
   void ComputeNormal();
 
@@ -62,7 +77,7 @@ class Sphere : public Primitive {
 
   glm::vec4 getNormal(const glm::vec4 &p);
 
-  float intersects(const glm::vec4 start, const glm::vec4 direction);
+  float intersect(Ray *ray);
 };
 
 #endif

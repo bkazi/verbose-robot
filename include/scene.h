@@ -5,7 +5,6 @@
 
 #include "objects.h"
 #include "bvh.h"
-#include "ray.h"
 
 struct Scene {
 public:

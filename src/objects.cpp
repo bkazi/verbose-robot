@@ -9,6 +9,8 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
+Ray::Ray(vec4 position, vec4 direction): position(position), direction(direction) {}
+
 /* OBJECT CLASS IMPLEMENTATION */
 Object::Object(vector<Primitive *> primitives) : primitives(primitives){};
 void Object::computeBounds(const vec3 &planeNormal, float &dnear,
@@ -46,12 +48,12 @@ void Object::computeBounds(const vec3 &planeNormal, float &dnear,
 Primitive::Primitive(vec3 emit, vec3 color, float shininess, float Ka, float Ks,
                      float Kd)
     : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd) {}
-float Primitive::intersects(const vec4 start, const vec4 direction) {
-  return -1;
-}
 vec4 Primitive::randomPoint() { return vec4(); };
 vec4 Primitive::getNormal(const vec4 &p) { return vec4(); };
 bool Primitive::isLight() { return emit.x > 0 || emit.y > 0 || emit.z > 0; }
+float Primitive::intersect(Ray *ray) {
+  return INFINITY;
+}
 
 /* TRIANGLE CLASS IMPLEMENTATION */
 Triangle::Triangle(vec4 v0, vec4 v1, vec4 v2, vec3 emit, vec3 color,
@@ -69,16 +71,16 @@ vec4 Triangle::randomPoint() {
     }
   }
 }
-float Triangle::intersects(const vec4 start, const vec4 direction) {
-  vec3 b = glm::vec3(start - v0);
-  mat3 A(-glm::vec3(direction), e1, e2);
+float Triangle::intersect(Ray *ray) {
+  vec3 b = glm::vec3(ray->position - v0);
+  mat3 A(-glm::vec3(ray->direction), e1, e2);
   float detA = determinant(A);
   float dist = determinant(mat3(b, e1, e2)) / detA;
 
   // Calculate point of intersection
   if (dist > 0) {
-    float u = determinant(mat3(-vec3(direction), b, e2)) / detA;
-    float v = determinant(mat3(-vec3(direction), e1, b)) / detA;
+    float u = determinant(mat3(-vec3(ray->direction), b, e2)) / detA;
+    float v = determinant(mat3(-vec3(ray->direction), e1, b)) / detA;
     if (u >= 0 && v >= 0 && u + v <= 1) {
       return dist;
     }
@@ -97,18 +99,18 @@ Sphere::Sphere(vec4 c, float radius, vec3 emit, vec3 color, float shininess,
                float Ka, float Ks, float Kd)
     : Primitive(emit, color, shininess, Ka, Ks, Kd), c(c), radius(radius) {}
 vec4 Sphere::getNormal(const vec4 &p) { return (p - c) / radius; }
-float Sphere::intersects(const vec4 start, const vec4 direction) {
-  vec4 sC = start - c;
+float Sphere::intersect(Ray *ray) {
+  vec4 sC = ray->position - c;
   float inSqrt =
-      powf(radius, 2.0f) - (dot(sC, sC) - powf(dot(direction, sC), 2.0f));
+      powf(radius, 2.0f) - (dot(sC, sC) - powf(dot(ray->direction, sC), 2.0f));
   float dist, dist1, dist2;
   if (inSqrt < 0) {
     return -1;
   } else if (inSqrt == 0) {
-    dist = -dot(direction, sC);
+    dist = -dot(ray->direction, sC);
   } else {
-    dist1 = -dot(direction, sC) + sqrt(inSqrt);
-    dist2 = -dot(direction, sC) - sqrt(inSqrt);
+    dist1 = -dot(ray->direction, sC) + sqrt(inSqrt);
+    dist2 = -dot(ray->direction, sC) - sqrt(inSqrt);
     dist = dist1 > 0 && dist1 < dist2 ? dist1 : dist2;
   }
   if (dist > 0) {

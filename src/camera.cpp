@@ -8,9 +8,9 @@ using glm::vec4;
 
 Camera::Camera(vec4 position, vec3 rotation, float focalLength,
                float movementSpeed, float rotationSpeed)
-    : position(position),
+    : focalLength(focalLength),
+      position(position),
       rotation(rotation),
-      focalLength(focalLength),
       movementSpeed(movementSpeed),
       rotationSpeed(rotationSpeed) {}
 
