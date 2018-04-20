@@ -31,7 +31,7 @@ public:
 
   Primitive(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
         float Kd);
-  float intersect(Ray *ray);
+  virtual float intersect(Ray *ray);
   virtual glm::vec4 randomPoint();
   virtual glm::vec4 getNormal(const glm::vec4 &p);
   virtual bool isLight();
@@ -55,11 +55,11 @@ class Triangle : public Primitive {
   Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit,
            glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
 
-  glm::vec4 getNormal(const glm::vec4 &p);
+  glm::vec4 getNormal(const glm::vec4 &p) override;
 
-  glm::vec4 randomPoint();
+  glm::vec4 randomPoint() override;
 
-  float intersect(Ray *ray);
+  float intersect(Ray *ray) override;
 
   void ComputeNormal();
 
@@ -75,9 +75,9 @@ class Sphere : public Primitive {
   Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color,
          float shininess, float Ka, float Ks, float Kd);
 
-  glm::vec4 getNormal(const glm::vec4 &p);
+  glm::vec4 getNormal(const glm::vec4 &p) override;
 
-  float intersect(Ray *ray);
+  float intersect(Ray *ray) override;
 };
 
 #endif
