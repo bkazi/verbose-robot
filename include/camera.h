@@ -8,7 +8,7 @@ struct Camera {
   Camera(glm::vec4 position, glm::vec3 rotation, float focalLength,
          float movementSpeed, float rotationSpeed);
 
-  void update(float dt);
+  bool update(float dt);
   glm::mat4 getTransformationMatrix();
   glm::mat4 getTranslationMatrix();
   glm::mat4 getRotationMatrix();

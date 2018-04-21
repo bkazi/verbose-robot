@@ -48,7 +48,7 @@ float apertureSize = 0.1;
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update();
+void Update(screen *screen);
 void Draw(screen *screen);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec);
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 #ifdef LIVE
   while (NoQuitMessageSDL()) {
-    Update();
+    Update(screen);
     Draw(screen);
     SDL_Renderframe(screen);
   }
@@ -134,7 +134,7 @@ void Draw(screen *screen) {
 }
 
 /*Place updates of parameters here*/
-void Update() {
+void Update(screen *screen) {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -143,7 +143,11 @@ void Update() {
   cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
-  camera->update(dt);
+  if (camera->update(dt)) {
+    memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+    memset(screen->pixels, 0, screen->height * screen->width * sizeof(vec3));
+    samples = 0;
+  }
 }
 
 std::default_random_engine generator;
