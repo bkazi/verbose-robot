@@ -56,7 +56,7 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce,
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
-vec3 Light(const vec4 start, const vec4 dir, int bounce);
+vec3 Light(const vec4 start, const vec4 dir, int bounce = 0);
 float max3(vec3);
 void LoadModel(vector<Object *> &scene, const char *path);
 
@@ -116,12 +116,12 @@ void Draw(screen *screen) {
       vec3 color = vec3(0);
 #if NUM_RAYS <= 1
       vec4 direction = glm::normalize(vec4(x, y, camera->focalLength, 1) * camera->getRotationMatrix());
-      color += Light(camera->position, direction, 0);
+      color += Light(camera->position, direction);
 #else
       for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
         for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
           vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera->focalLength) * camera->getRotationMatrix(), 1));
-          color += Light(camera->position, direction, 0);
+          color += Light(camera->position, direction);
         }
       }
       color /= NUM_RAYS * NUM_RAYS;
