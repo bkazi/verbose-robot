@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
     scene->LoadModel(path);
   }
 
-  // scene->createBVH();
+  scene->createBVH();
 
   camera = new Camera(
     vec4(0, 0, -3.001, 1),

@@ -34,7 +34,6 @@ bool Scene::intersect(Ray *ray, Intersection &intersection) {
 
       for (uint32_t i = 0; i < object->primitives.size(); ++i) {
         float dist = object->primitives[i]->intersect(ray);
-        assert(dist != INFINITY);
         if (dist < minDist) {
           minDist = dist;
           closestPrimitive = object->primitives[i];
