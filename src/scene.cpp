@@ -54,7 +54,7 @@ bool Scene::intersect(Ray *ray, Intersection &intersection) {
   intersection.primitive = closestPrimitive;
   intersection.distance = minDist;
   intersection.position = ray->position + minDist * ray->direction;
-  return closestPrimitive != NULL;
+  return closestPrimitive != NULL || minDist != INFINITY;
 }
 
 void Scene::createBVH() { bvh = new BVH(objects); }
