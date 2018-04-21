@@ -127,7 +127,6 @@ void Draw(screen *screen) {
       }
       color /= NUM_RAYS * NUM_RAYS;
 #endif
-      // cout << "Color: " << glm::to_string(color) << endl;
       PutPixelSDL(screen, x + SCREEN_WIDTH / 2, y + SCREEN_HEIGHT / 2, color,
                   samples);
     }
