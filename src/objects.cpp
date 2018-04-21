@@ -1,4 +1,5 @@
 #include "objects.h"
+#include <iostream>
 
 using namespace std;
 
@@ -9,12 +10,12 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-Ray::Ray(vec4 position, vec4 direction): position(position), direction(direction) {}
+Ray::Ray(vec4 position, vec4 direction)
+    : position(position), direction(direction) {}
 
 /* OBJECT CLASS IMPLEMENTATION */
 Object::Object(vector<Primitive *> primitives) : primitives(primitives){};
-void Object::computeBounds(const vec3 &planeNormal, float &dnear,
-                           float &dfar) {
+void Object::computeBounds(const vec3 &planeNormal, float &dnear, float &dfar) {
   float d;
   for (uint32_t i = 0; i < primitives.size(); i++) {
     Triangle *tri;
@@ -33,11 +34,13 @@ void Object::computeBounds(const vec3 &planeNormal, float &dnear,
       if (d > dfar) dfar = d;
     }
     if ((sph = dynamic_cast<Sphere *>(primitives[i]))) {
-      d = dot(planeNormal, vec3(sph->c.x, sph->c.y, sph->c.z) + (planeNormal * sph->radius));
+      d = dot(planeNormal,
+              vec3(sph->c.x, sph->c.y, sph->c.z) + (planeNormal * sph->radius));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
 
-      d = dot(planeNormal, vec3(sph->c.x, sph->c.y, sph->c.z) - (planeNormal * sph->radius));
+      d = dot(planeNormal,
+              vec3(sph->c.x, sph->c.y, sph->c.z) - (planeNormal * sph->radius));
       if (d < dnear) dnear = d;
       if (d > dfar) dfar = d;
     }
@@ -51,9 +54,7 @@ Primitive::Primitive(vec3 emit, vec3 color, float shininess, float Ka, float Ks,
 vec4 Primitive::randomPoint() { return vec4(); };
 vec4 Primitive::getNormal(const vec4 &p) { return vec4(); };
 bool Primitive::isLight() { return emit.x > 0 || emit.y > 0 || emit.z > 0; }
-float Primitive::intersect(Ray *ray) {
-  return INFINITY;
-}
+float Primitive::intersect(Ray *ray) { return INFINITY; }
 
 /* TRIANGLE CLASS IMPLEMENTATION */
 Triangle::Triangle(vec4 v0, vec4 v1, vec4 v2, vec3 emit, vec3 color,
@@ -105,7 +106,7 @@ float Sphere::intersect(Ray *ray) {
       powf(radius, 2.0f) - (dot(sC, sC) - powf(dot(ray->direction, sC), 2.0f));
   float dist, dist1, dist2;
   if (inSqrt < 0) {
-    return -1;
+    return INFINITY;
   } else if (inSqrt == 0) {
     dist = -dot(ray->direction, sC);
   } else {

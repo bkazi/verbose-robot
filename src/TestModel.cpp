@@ -24,14 +24,14 @@ void LoadTestModel(std::vector<Object *> &scene) {
   // Sphere 1
   std::vector<Primitive *> sphere1Primitives;
   sphere1Primitives.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f,
-                                         vec3(0), white, 2, 0.5, 0.04, 0.46));
+                                         vec3(0), cyan, 2, 0.5, 0.04, 0.46));
   scene.push_back(new Object(sphere1Primitives));
 
   // ---------------------------------------------------------------------------
   // Sphere 2
   std::vector<Primitive *> sphere2Primitives;
   sphere2Primitives.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, vec3(0),
-                                         white, 2, 0.5, 0.04, 0.46));
+                                         cyan, 2, 0.5, 0.04, 0.46));
   scene.push_back(new Object(sphere2Primitives));
 
   // ---------------------------------------------------------------------------
