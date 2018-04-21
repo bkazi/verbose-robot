@@ -151,8 +151,6 @@ std::uniform_real_distribution<float> distribution(0, 1);
 vec3 Light(const vec4 start, const vec4 dir, int bounce) {
   Intersection intersection;
   if (scene->intersect(new Ray(start + dir * 1e-4f, dir), intersection)) {
-    cout << "Intersection: {" << endl << "position: " << intersection.position "," << endl << "distance: " << intersection.distance << "," << endl << "}" << endl;
-    
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
     if (bounce > MIN_BOUNCES &&
