@@ -13,6 +13,7 @@
 #include <time.h>
 #include <algorithm>
 #include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <random>
 #include "SDLauxiliary.h"
@@ -126,6 +127,7 @@ void Draw(screen *screen) {
       }
       color /= NUM_RAYS * NUM_RAYS;
 #endif
+      // cout << "Color: " << glm::to_string(color) << endl;
       PutPixelSDL(screen, x + SCREEN_WIDTH / 2, y + SCREEN_HEIGHT / 2, color,
                   samples);
     }
