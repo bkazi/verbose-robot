@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
     scene->LoadModel(path);
   }
 
-  scene->createBVH();
+  // scene->createBVH();
 
   camera = new Camera(
     vec4(0, 0, -3.001, 1),
@@ -144,37 +144,6 @@ void Update() {
 
   camera->update(dt);
 }
-
-// bool ClosestIntersection(Ray *ray,
-//                          Intersection &closestIntersection) {
-//   closestIntersection.distance = m;
-//   closestIntersection.objectIndex = -1;
-
-//   Primitive *primitive = scene->intersect(ray);
-//   // for (uint j = 0; j < scene[i]->primitives.size(); ++j) {
-//   //   float dist = scene[i]->primitives[j]->intersects(start, dir);
-//   //   if (dist > 0 && dist < closestIntersection.distance) {
-//   //     closestIntersection.distance = dist;
-//   //     closestIntersection.objectIndex = i;
-//   //     closestIntersection.primitiveIndex = j;
-//   //     closestIntersection.position = start + dist * dir;
-//   //   }
-//   // }
-
-//   for (uint i = 0; i < indices.size(); ++i) {
-//     for (uint j = 0; j < scene->objects[indices[i]]->primitives.size(); ++j) {
-//       float dist = scene->objects[indices[i]]->primitives[j]->intersects(start, dir);
-//       if (dist > 0 && dist < closestIntersection.distance) {
-//         closestIntersection.distance = dist;
-//         closestIntersection.objectIndex = indices[i];
-//         closestIntersection.primitiveIndex = j;
-//         closestIntersection.position = start + dist * dir;
-//       }
-//     }
-//   }
-
-//   return closestIntersection.objectIndex != -1;
-// }
 
 std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);

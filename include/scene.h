@@ -17,7 +17,7 @@ public:
     void LoadTest();
 
 private:
-    BVH *bvh;
+    BVH *bvh = NULL;
 };
 
 #endif

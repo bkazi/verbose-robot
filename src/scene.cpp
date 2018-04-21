@@ -24,25 +24,37 @@ Scene::Scene() {
 Scene::Scene(vector<Object *> objects) : objects(objects) {}
 
 bool Scene::intersect(Ray *ray, Intersection &intersection) {
-  Object *object = bvh->intersect(ray, objects);
   Primitive *closestPrimitive = NULL;
+  float minDist = INFINITY;
+  if (bvh != NULL) {
+    Object *object = bvh->intersect(ray, objects);
 
-  if (object != NULL) {
-    float minDist = INFINITY;
+    if (object != NULL) {
+      float minDist = INFINITY;
 
-    for (uint32_t i = 0; i < object->primitives.size(); ++i) {
-      float dist = object->primitives[i]->intersect(ray);
-      assert(dist != INFINITY);
-      if (dist < minDist) {
-        minDist = dist;
-        closestPrimitive = object->primitives[i];
+      for (uint32_t i = 0; i < object->primitives.size(); ++i) {
+        float dist = object->primitives[i]->intersect(ray);
+        assert(dist != INFINITY);
+        if (dist < minDist) {
+          minDist = dist;
+          closestPrimitive = object->primitives[i];
+        }
       }
     }
-
-    intersection.primitive = closestPrimitive;
-    intersection.distance = minDist;
-    intersection.position = ray->position + minDist * ray->direction;
+  } else {
+    for (uint32_t i = 0; i < objects.size(); ++i) {
+      for (uint32_t j = 0; j < objects[i]->primitives.size(); ++j) {
+        float dist = objects[i]->primitives[j]->intersect(ray);
+        if (dist < minDist) {
+          minDist = dist;
+          closestPrimitive = objects[i]->primitives[j];
+        }
+      }
+    }
   }
+  intersection.primitive = closestPrimitive;
+  intersection.distance = minDist;
+  intersection.position = ray->position + minDist * ray->direction;
   return closestPrimitive != NULL;
 }
 

@@ -85,7 +85,7 @@ float Triangle::intersect(Ray *ray) {
       return dist;
     }
   }
-  return -1;
+  return INFINITY;
 }
 void Triangle::ComputeNormal() {
   e1 = glm::vec3(v1 - v0);
@@ -116,5 +116,5 @@ float Sphere::intersect(Ray *ray) {
   if (dist > 0) {
     return dist;
   }
-  return -1;
+  return INFINITY;
 }
