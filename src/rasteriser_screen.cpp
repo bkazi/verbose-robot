@@ -1,8 +1,11 @@
-#include "SDLauxiliary.h"
-#include <iostream>
-#include <stdint.h>
+#include "rasteriser_screen.h"
 
-void SDL_SaveImage(screen *s, const char* filename) {
+#include "SDL.h"
+
+#include <glm/glm.hpp>
+#include <iostream>
+
+void SDL_SaveImage(screen* s, const char* filename) {
   uint32_t rmask, gmask, bmask, amask;
 
   if (SDL_BYTEORDER == SDL_BIG_ENDIAN) {
@@ -17,18 +20,18 @@ void SDL_SaveImage(screen *s, const char* filename) {
     bmask = 0xff << 0;
   }
 
-  SDL_Surface* surf = SDL_CreateRGBSurfaceFrom((void*)s->buffer, s->width, s->height,
-					       32, s->width*sizeof(uint32_t),
-					       rmask,gmask,bmask,amask);
+  SDL_Surface* surf = SDL_CreateRGBSurfaceFrom(
+      (void*)s->buffer, s->width, s->height, 32, s->width * sizeof(uint32_t),
+      rmask, gmask, bmask, amask);
   if (SDL_SaveBMP(surf, filename) != 0) {
     std::cout << "Failed to save image: " << SDL_GetError() << std::endl;
     exit(1);
   }
-  
 }
 
 void KillSDL(screen* s) {
   delete[] s->buffer;
+  delete[] s->depthBuffer;
   SDL_DestroyTexture(s->texture);
   SDL_DestroyRenderer(s->renderer);
   SDL_DestroyWindow(s->window);
@@ -36,44 +39,32 @@ void KillSDL(screen* s) {
 }
 
 void SDL_Renderframe(screen* s) {
-  for (int y = 0; y < s->height; y++) {
-    for (int x = 0; x < s->width; x++) {
-      glm::vec3 colour = s->pixels[y*s->width+x] / (float) s->samples;
-      uint32_t r = uint32_t(glm::clamp(255*colour.r, 0.f, 255.f));
-      uint32_t g = uint32_t(glm::clamp( 255*colour.g, 0.f, 255.f));
-      uint32_t b = uint32_t(glm::clamp( 255*colour.b, 0.f, 255.f));
-
-      s->buffer[y*s->width+x] = (0xFF<<24) + (r<<16) + (g<<8) + b;
-    }
-  }
-  SDL_UpdateTexture(s->texture, NULL, s->buffer, s->width*sizeof(uint32_t));
+  SDL_UpdateTexture(s->texture, NULL, s->buffer, s->width * sizeof(uint32_t));
   SDL_RenderClear(s->renderer);
   SDL_RenderCopy(s->renderer, s->texture, NULL, NULL);
   SDL_RenderPresent(s->renderer);
 }
 
-screen* InitializeSDL(int width,int height, bool fullscreen) {
+screen* InitializeSDL(int width, int height, bool fullscreen) {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
     std::cout << "Could not initialise SDL: " << SDL_GetError() << std::endl;
     exit(1);
   }
-  
-  screen *s = new screen;
+
+  screen* s = new screen;
   s->width = width;
   s->height = height;
-  s->buffer = new uint32_t[width*height];
-  s->pixels = new glm::vec3[width*height];
-  s->samples = 0;
-  memset(s->buffer, 0, width*height*sizeof(uint32_t));
-  
+  s->buffer = new uint32_t[width * height];
+  s->depthBuffer = new float[width * height];
+  memset(s->buffer, 0, width * height * sizeof(uint32_t));
+  memset(s->depthBuffer, 0.f, width * height * sizeof(float));
+
   uint32_t flags = SDL_WINDOW_OPENGL;
   if (fullscreen) {
     flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
   }
-  s->window = SDL_CreateWindow("COMS30115",
-				      SDL_WINDOWPOS_UNDEFINED,
-				      SDL_WINDOWPOS_UNDEFINED,
-				      width, height,flags);
+  s->window = SDL_CreateWindow("COMS30115", SDL_WINDOWPOS_UNDEFINED,
+                               SDL_WINDOWPOS_UNDEFINED, width, height, flags);
   if (s->window == 0) {
     std::cout << "Could not set video mode: " << SDL_GetError() << std::endl;
     exit(1);
@@ -86,41 +77,44 @@ screen* InitializeSDL(int width,int height, bool fullscreen) {
     exit(1);
   }
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
-  SDL_RenderSetLogicalSize(s->renderer, width,height);
+  SDL_RenderSetLogicalSize(s->renderer, width, height);
 
-  s->texture = SDL_CreateTexture(s->renderer,
-				 SDL_PIXELFORMAT_ARGB8888,
-				 SDL_TEXTUREACCESS_STATIC,
-				 s->width,s->height);
+  s->texture = SDL_CreateTexture(s->renderer, SDL_PIXELFORMAT_ARGB8888,
+                                 SDL_TEXTUREACCESS_STATIC, s->width, s->height);
   if (s->texture == 0) {
     std::cout << "Could not allocate texture: " << SDL_GetError() << std::endl;
     exit(1);
   }
-  
+
   return s;
 }
 
 bool NoQuitMessageSDL() {
   SDL_Event e;
-  while(SDL_PollEvent(&e)) {
+  while (SDL_PollEvent(&e)) {
     if (e.type == SDL_QUIT) {
-	    return false;
+      return false;
     }
     if (e.type == SDL_KEYDOWN) {
-	    if (e.key.keysym.sym == SDLK_ESCAPE) {
-	      return false;
-	    }
-	  }
+      if (e.key.keysym.sym == SDLK_ESCAPE) {
+        return false;
+      }
+    }
   }
   return true;
 }
 
-void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, int samples) {
-  if (x < 0 || x >= s->width || y<0 || y >= s->height) {
+void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, float depth) {
+  if (x < 0 || x >= s->width || y < 0 || y >= s->height) {
     std::cout << "apa" << std::endl;
     return;
   }
-  
-  s->pixels[y*s->width+x] += colour;
-  s->samples = samples;
+  uint32_t r = uint32_t(glm::clamp(255 * colour.r, 0.f, 255.f));
+  uint32_t g = uint32_t(glm::clamp(255 * colour.g, 0.f, 255.f));
+  uint32_t b = uint32_t(glm::clamp(255 * colour.b, 0.f, 255.f));
+
+  if (depth > s->depthBuffer[y * s->width + x]) {
+    s->depthBuffer[y * s->width + x] = depth;
+    s->buffer[y * s->width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
+  }
 }

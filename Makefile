@@ -4,7 +4,7 @@ HDIR := include $(GLMDIR)
 
 # Source files
 SRCDIR = src
-SRCS = $(wildcard $(SRCDIR)/*.cpp)
+SRCS = $(wildcard src/*.cpp)
 
 # Dependencies
 DEPDIR = dependencies
@@ -14,10 +14,11 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 BUILDDIR = build
 OBJS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%.o,$(basename $(SRCS)))
 
+
 # Binary files
 BINDIR = bin
-BINARYNAME = raytracer
-BINARY = $(BINDIR)/$(BINARYNAME)
+BINARY_RAYTRACER = $(BINDIR)/raytracer
+BINARY_RASTERISER = $(BINDIR)/rasteriser
 
 # Compilation options
 CXX = icpc
@@ -26,10 +27,11 @@ COMPILE = $(CXX) -o $@ -c $< $(CXXFLAGS)
 
 # Link Options
 LDFLAGS += $(shell sdl2-config --libs) -fopenmp
-LINK = $(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
+LINK_RAYTRACER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/rasteriser.o $(BUILDDIR)/rasteriser_screen.o, $^) $(LDFLAGS) $(LDLIBS)
+LINK_RASTERISER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/raytracer.o $(BUILDDIR)/raytracer_screen.o, $^) $(LDFLAGS) $(LDLIBS)
 
 .PHONY: all clean
-all: $(BUILDDIR) $(DEPDIR) $(BINDIR) $(BINARY)
+all: $(BUILDDIR) $(DEPDIR) $(BINDIR) $(BINARY_RAYTRACER) $(BINARY_RASTERISER)
 clean:
 	@$(RM) $(BUILDDIR)/*.o $(DEPDIR)/*.d $(BINARY) screenshot.bmp
 
@@ -42,8 +44,12 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	@$(COMPILE)
 
 # Compiling Release Binary
-$(BINARY): $(OBJS)
+$(BINARY_RAYTRACER): $(OBJS)
 	$(info $@)
-	@$(LINK)
+	@$(LINK_RAYTRACER)
+
+$(BINARY_RASTERISER): $(OBJS)
+	$(info $@)
+	@$(LINK_RASTERISER)
 
 include $(wildcard $(DEPDIR)/*.d)
