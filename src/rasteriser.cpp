@@ -31,7 +31,6 @@ using glm::vec4;
 
 void Update(Camera *camera);
 void Draw(screen *screen, Camera *camera);
-void TransformationMatrix(vec3 rotation, vec4 position, mat4 &M);
 void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat);
 void PixelShader(screen *screen, const Pixel &p, Camera *camera);
 void Interpolate(Pixel a, Pixel b, vector<Pixel> &result);
@@ -67,7 +66,7 @@ int main(int argc, char *argv[]) {
   // };
   Camera *camera = new Camera(
     vec4(0, 0, -1.5001, 1),
-    vec3(0, M_PI_2, M_PI),
+    vec3(0, 0, 0),
     SCREEN_HEIGHT,
     0.001,
     0.001
@@ -80,10 +79,11 @@ int main(int argc, char *argv[]) {
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
-  if (argc >= 2) {
-    const string path = argv[1];
-    scene->LoadModel(path);
-  }
+  scene->LoadTest();
+  // if (argc >= 2) {
+  //   const string path = argv[1];
+  //   scene->LoadModel(path);
+  // }
 
   while (NoQuitMessageSDL()) {
     Update(camera);
@@ -152,7 +152,8 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
 void PixelShader(screen *screen, const Pixel &p, Camera *camera) {
   vec3 D;
   if (light.test(p.worldPos)) {
-    mat4 transMat = camera->getTransformationMatrix();
+    mat4 transMat =camera->getTransformationMatrix();
+    // TransformationMatrix(camera->rotation, camera->position, transMat);
     vec4 r = transMat * (light.position - p.worldPos);
     float rLen = glm::length(r);
     vec4 rNorm = r / rLen;
@@ -380,6 +381,7 @@ void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
   vector<Pixel> vertexPixels(V);
 
   mat4 transMat = camera->getTransformationMatrix();
+  // TransformationMatrix(camera->rotation, camera->position, transMat);
   mat4 projMat = mat4(1);
   // projMat[2].z = (- NEAR_PLANE - FAR_PLANE) / (NEAR_PLANE - FAR_PLANE);
   projMat[2].w = 1 / camera->focalLength;

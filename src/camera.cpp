@@ -1,7 +1,10 @@
 #include <SDL.h>
 
 #include "camera.h"
+#include <glm/gtx/string_cast.hpp>
+#include <iostream>
 
+using namespace std;
 using glm::mat4;
 using glm::vec3;
 using glm::vec4;
@@ -70,7 +73,6 @@ bool Camera::update(float dt) {
     }
     updated = true;
   }
-
   return updated;
 }
 

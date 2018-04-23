@@ -70,10 +70,10 @@ int main(int argc, char *argv[]) {
 
   scene = new Scene();
   scene->LoadTest();
-  if (argc >= 2) {
-    const string path = argv[1];
-    scene->LoadModel(path);
-  }
+  // if (argc >= 2) {
+  //   const string path = argv[1];
+  //   scene->LoadModel(path);
+  // }
 
   // scene->createBVH();
 
