@@ -79,11 +79,12 @@ int main(int argc, char *argv[]) {
 
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
-  scene->LoadTest();
-  // if (argc >= 2) {
-  //   const string path = argv[1];
-  //   scene->LoadModel(path);
-  // }
+  if (argc >= 2) {
+    const string path = argv[1];
+    scene->LoadModel(path);
+  } else {
+    scene->LoadTest();
+  }
 
   while (NoQuitMessageSDL()) {
     Update(camera);
