@@ -22,16 +22,16 @@ void LoadTestModel(std::vector<Object *> &scene) {
 
   // ---------------------------------------------------------------------------
   // Sphere 1
-  std::vector<Primitive *> sphere1Primitives;
-  sphere1Primitives.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f,
-                                         vec3(0), cyan, 2, 0.5, 0.04, 0.46));
-  scene.push_back(new Object(sphere1Primitives));
+//   std::vector<Primitive *> sphere1Primitives;
+//   sphere1Primitives.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f,
+//                                          vec3(0), cyan, 2, 0.5, 0.04, 0.46));
+//   scene.push_back(new Object(sphere1Primitives));
 
   // ---------------------------------------------------------------------------
   // Sphere 2
   std::vector<Primitive *> sphere2Primitives;
   sphere2Primitives.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, vec3(0),
-                                         cyan, 2, 0.5, 0.04, 0.46));
+                                         white, 2, 1.0, 1.0, 1.0));
   scene.push_back(new Object(sphere2Primitives));
 
   // ---------------------------------------------------------------------------
@@ -52,55 +52,55 @@ void LoadTestModel(std::vector<Object *> &scene) {
   // Light
   std::vector<Primitive *> lightPrimitives;
   lightPrimitives.push_back(
-      new Triangle(vec4(3 * L / 5, 0.99 * L, 2 * L / 5, 1),
-                   vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1),
-                   vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1), 50.0f * vec3(1),
+      new Triangle(vec4(3 * L / 4, 0.99 * L, 1 * L / 4, 1),
+                   vec4(1 * L / 4, 0.99 * L, 1 * L / 4, 1),
+                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 40.0f * vec3(1),
                    vec3(0), 1, 0.1, 0.1, 0.8));
   lightPrimitives.push_back(
-      new Triangle(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1),
-                   vec4(2 * L / 5, 0.99 * L, 3 * L / 5, 1),
-                   vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1), 50.0f * vec3(1),
+      new Triangle(vec4(1 * L / 4, 0.99 * L, 1 * L / 4, 1),
+                   vec4(1 * L / 4, 0.99 * L, 3 * L / 4, 1),
+                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 40.0f * vec3(1),
                    vec3(0), 1, 0.1, 0.1, 0.8));
   scene.push_back(new Object(lightPrimitives));
 
   // Floor:
   std::vector<Primitive *> floorPrimitives;
   floorPrimitives.push_back(
-      new Triangle(C, B, A, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(C, B, A, vec3(0), white, 10, 1.0, 1.0, 1.0));
   floorPrimitives.push_back(
-      new Triangle(C, D, B, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(C, D, B, vec3(0), white, 10, 1.0, 1.0, 1.0));
   scene.push_back(new Object(floorPrimitives));
 
   // Left wall
   std::vector<Primitive *> leftWallPrimitives;
   leftWallPrimitives.push_back(
-      new Triangle(A, E, C, vec3(0), red, 2, 0.5, 0.04, 0.46));
+      new Triangle(A, E, C, vec3(0), red, 2, 1.0, 0.5, 0.8));
   leftWallPrimitives.push_back(
-      new Triangle(C, E, G, vec3(0), red, 2, 0.5, 0.04, 0.46));
+      new Triangle(C, E, G, vec3(0), red, 2, 1.0, 0.5, 0.8));
   scene.push_back(new Object(leftWallPrimitives));
 
   // Right wall
   std::vector<Primitive *> rightWallPrimitives;
   rightWallPrimitives.push_back(
-      new Triangle(F, B, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
+      new Triangle(F, B, D, vec3(0), green, 2, 1.0, 0.5, 0.8));
   rightWallPrimitives.push_back(
-      new Triangle(H, F, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
+      new Triangle(H, F, D, vec3(0), green, 2, 1.0, 0.5, 0.8));
   scene.push_back(new Object(rightWallPrimitives));
 
   // Ceiling
   std::vector<Primitive *> ceilingPrimitives;
   ceilingPrimitives.push_back(
-      new Triangle(E, F, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
+      new Triangle(E, F, G, vec3(0), white, 10, 1.0, 1.0, 1.0));
   ceilingPrimitives.push_back(
-      new Triangle(F, H, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
+      new Triangle(F, H, G, vec3(0), white, 10, 1.0, 1.0, 1.0));
   scene.push_back(new Object(ceilingPrimitives));
 
   // Back wall
   std::vector<Primitive *> backWallPrimitives;
   backWallPrimitives.push_back(
-      new Triangle(G, D, C, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(G, D, C, vec3(0), white, 10, 1.0, 1.0, 1.0));
   backWallPrimitives.push_back(
-      new Triangle(G, H, D, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(G, H, D, vec3(0), white, 10, 1.0, 1.0, 1.0));
   scene.push_back(new Object(backWallPrimitives));
 
   // ---------------------------------------------------------------------------
@@ -149,25 +149,27 @@ void LoadTestModel(std::vector<Object *> &scene) {
   G = vec4(472, 330, 406, 1);
   H = vec4(314, 330, 456, 1);
 
-  // // Front
-  // primitives.push_back( Triangle(E,B,A,blue) );
-  // primitives.push_back( Triangle(E,F,B,blue) );
+  std::vector<Primitive *> tallBlockPrimitives;
+  // Front
+  tallBlockPrimitives.push_back( new Triangle(E, B, A, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(E, F, B, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
 
-  // // Front
-  // primitives.push_back( Triangle(F,D,B,blue) );
-  // primitives.push_back( Triangle(F,H,D,blue) );
+  // Front
+  tallBlockPrimitives.push_back( new Triangle(F, D, B, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(F, H, D, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
 
-  // // BACK
-  // primitives.push_back( Triangle(H,C,D,blue) );
-  // primitives.push_back( Triangle(H,G,C,blue) );
+  // BACK
+  tallBlockPrimitives.push_back( new Triangle(H, C, D, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(H, G, C, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
 
-  // // LEFT
-  // primitives.push_back( Triangle(G,E,C,blue) );
-  // primitives.push_back( Triangle(E,A,C,blue) );
+  // LEFT
+  tallBlockPrimitives.push_back( new Triangle(G, E, C, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(E, A, C, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
 
-  // // TOP
-  // primitives.push_back( Triangle(G,F,E,blue) );
-  // primitives.push_back( Triangle(G,H,F,blue) );
+  // TOP
+  tallBlockPrimitives.push_back( new Triangle(G, F, E, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(G, H, F, vec3(0), cyan, 2, 1.0, 0.5, 0.5) );
+  scene.push_back(new Object(tallBlockPrimitives));
 
   // ----------------------------------------------
   // Scale to the volume [-1,1]^3
