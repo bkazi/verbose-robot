@@ -1,3 +1,0 @@
-- [ ] Rotate about a _*known*_ point
-- [ ] Not upside down
-- [ ] Colour

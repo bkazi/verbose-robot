@@ -3,6 +3,6 @@
 
 #include "objects.h"
 
-void LoadTestModel(std::vector<Shape *>& shapes);
+void LoadTestModel(std::vector<Object *> &scene);
 
 #endif

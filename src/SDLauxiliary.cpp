@@ -63,6 +63,7 @@ screen* InitializeSDL(int width,int height, bool fullscreen) {
   s->height = height;
   s->buffer = new uint32_t[width*height];
   s->pixels = new glm::vec3[width*height];
+  s->depthBuffer = new float[width*height];
   s->samples = 0;
   memset(s->buffer, 0, width*height*sizeof(uint32_t));
   
