@@ -28,15 +28,14 @@ using glm::mat4;
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
+using glm::ivec2;
 
-#define SCREEN_WIDTH 640
+#define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
-#define NUM_RAYS 0
-#define BOUNCES 3
-#define MIN_BOUNCES 1
-#define MAX_BOUNCES 2
-#define NUM_SAMPLES 1
+#define MIN_BOUNCES 5
+#define MAX_BOUNCES 10
+#define AA
 #define LIVE
 
 float m = numeric_limits<float>::max();
@@ -69,11 +68,12 @@ int main(int argc, char *argv[]) {
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   scene = new Scene();
-  scene->LoadTest();
-  // if (argc >= 2) {
-  //   const string path = argv[1];
-  //   scene->LoadModel(path);
-  // }
+  if (argc >= 2) {
+    const string path = argv[1];
+    scene->LoadModel(path);
+  } else {
+    scene->LoadTest();
+  }
 
   // scene->createBVH();
 
@@ -111,21 +111,26 @@ void Draw(screen *screen) {
   samples++;
 
   int x, y;
-#pragma omp parallel for private(x, y)
+#pragma omp parallel for private(x, y) collapse(2)
   for (y = -SCREEN_HEIGHT / 2; y < SCREEN_HEIGHT / 2; y++) {
     for (x = -SCREEN_WIDTH / 2; x < SCREEN_WIDTH / 2; x++) {
       vec3 color = vec3(0);
-#if NUM_RAYS <= 1
+#ifndef AA
       vec4 direction = glm::normalize(vec4(x, y, camera->focalLength, 1) * camera->getRotationMatrix());
       color += Light(camera->position, direction);
 #else
-      for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
-        for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-          vec4 direction = glm::normalize(vec4((float) x + (apertureSize * i), (float) y + (apertureSize * j), camera->focalLength, 1) * camera->getRotationMatrix());
-          color += Light(camera->position, direction);
-        }
+      ivec2 samplePoints[5] = {
+        ivec2(x - apertureSize, y - apertureSize),
+        ivec2(x + apertureSize, y - apertureSize),
+        ivec2(x + apertureSize, y + apertureSize),
+        ivec2(x - apertureSize, y + apertureSize),
+        ivec2(x, y),
+      };
+      for (int i = 0; i < 5; i++) {
+        vec4 direction = glm::normalize(vec4((float) samplePoints[i].x, (float) samplePoints[i].y, camera->focalLength, 1) * camera->getRotationMatrix());
+        color += Light(camera->position, direction);
       }
-      color /= NUM_RAYS * NUM_RAYS;
+      color /= 5.f;
 #endif
       PutPixelSDL(screen, x + SCREEN_WIDTH / 2, y + SCREEN_HEIGHT / 2, color,
                   samples);
@@ -207,15 +212,10 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     vec4 rayDir = vec4(sampleWorld, 1);
     indirectLight += intersection.primitive->Kd * Light(hitPos, rayDir, bounce + 1);
 
-    if (bounce == 0) {
-      return intersection.primitive->emit +
-             intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
-                                 intersection.primitive->Ka * indirectLight +
-                                 intersection.primitive->Ks * directSpecularLight);
-    } else {
-      return intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
-                                 intersection.primitive->Ka * indirectLight);
-    }
+    return intersection.primitive->emit +
+            intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
+                                intersection.primitive->Ka * indirectLight +
+                                intersection.primitive->Ks * directSpecularLight);
   }
   return vec3(0);
 }
