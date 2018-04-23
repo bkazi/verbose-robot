@@ -32,7 +32,7 @@ using glm::vec4;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
-#define NUM_RAYS 0
+#define NUM_RAYS 4
 #define BOUNCES 3
 #define MIN_BOUNCES 4
 #define MAX_BOUNCES 10
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
     scene->LoadModel(path);
   }
 
-  scene->createBVH();
+  // scene->createBVH();
 
   camera = new Camera(
     vec4(0, 0, -3.001, 1),
@@ -121,7 +121,7 @@ void Draw(screen *screen) {
 #else
       for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
         for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-          vec4 direction = glm::normalize(vec4(vec3((float) x + apertureSize*i, (float) y + apertureSize*j, camera->focalLength) * camera->getRotationMatrix(), 1));
+          vec4 direction = glm::normalize(vec4((float) x + (apertureSize * i), (float) y + (apertureSize * j), camera->focalLength, 1) * camera->getRotationMatrix());
           color += Light(camera->position, direction);
         }
       }
