@@ -32,7 +32,7 @@ using glm::vec4;
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
-#define NUM_RAYS 4
+#define NUM_RAYS 0
 #define BOUNCES 3
 #define MIN_BOUNCES 4
 #define MAX_BOUNCES 10
