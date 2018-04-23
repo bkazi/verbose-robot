@@ -94,5 +94,7 @@ mat4 Camera::getTranslationMatrix() {
 }
 
 mat4 Camera::getTransformationMatrix() {
-  return getRotationMatrix() + getTranslationMatrix();
+  mat4 rot = getRotationMatrix();
+  rot[3] = -1.f * position;
+  return rot;
 }

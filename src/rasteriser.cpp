@@ -152,8 +152,7 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
 void PixelShader(screen *screen, const Pixel &p, Camera *camera) {
   vec3 D;
   if (light.test(p.worldPos)) {
-    mat4 transMat;
-    TransformationMatrix(camera->rotation, camera->position, transMat);
+    mat4 transMat = camera->getTransformationMatrix();
     vec4 r = transMat * (light.position - p.worldPos);
     float rLen = glm::length(r);
     vec4 rNorm = r / rLen;
@@ -380,8 +379,7 @@ void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
   int V = vertices.size();
   vector<Pixel> vertexPixels(V);
 
-  mat4 transMat;
-  TransformationMatrix(camera->rotation, camera->position, transMat);
+  mat4 transMat = camera->getTransformationMatrix();
   mat4 projMat = mat4(1);
   // projMat[2].z = (- NEAR_PLANE - FAR_PLANE) / (NEAR_PLANE - FAR_PLANE);
   projMat[2].w = 1 / camera->focalLength;
