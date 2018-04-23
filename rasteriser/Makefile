@@ -20,12 +20,12 @@ BINARYNAME = rasteriser
 BINARY = $(BINDIR)/$(BINARYNAME)
 
 # Compilation options
-CXX = icpc
-CXXFLAGS = -std=c++11 -Wall -Ofast -march=native -fopenmp -ggdb -g3 -D unix -D GLM_FORCE_SSE2 -D GLM_FORCE_ALIGNED -D textureLess $(addprefix -I, $(HDIR)) $(shell sdl2-config --cflags) $(DEPFLAGS)
+CXX = clang++
+CXXFLAGS = -std=c++11 -Wall -Ofast -march=native -ggdb -g3 -D unix -D GLM_FORCE_SSE2 -D GLM_FORCE_ALIGNED -D textureLess $(addprefix -I, $(HDIR)) $(shell sdl2-config --cflags) $(DEPFLAGS)
 COMPILE = $(CXX) -o $@ -c $< $(CXXFLAGS)
 
 # Link Options
-LDFLAGS += $(shell sdl2-config --libs) -fopenmp
+LDFLAGS += $(shell sdl2-config --libs)
 LINK = $(CXX) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 .PHONY: all clean

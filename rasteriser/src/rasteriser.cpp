@@ -1,10 +1,14 @@
 #include <iostream>
+#include <stdint.h>
+#include <assert.h>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 // #include <glm/gtx/string_cast.hpp>
 #include <SDL.h>
+
 #include "SDLauxiliary.h"
 #include "TestModelH.h"
-#include <stdint.h>
+#include "Light.h"
 
 using namespace std;
 using glm::ivec2;
@@ -14,10 +18,11 @@ using glm::vec4;
 using glm::mat3;
 using glm::mat4;
 
-
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 256
 #define FULLSCREEN_MODE false
+#define NEAR_PLANE 0.1
+#define FAR_PLANE 5
 
 struct Camera {
   float focalLength;
@@ -27,68 +32,59 @@ struct Camera {
   float rotationSpeed;
 };
 
-struct Pixel {
-  int x;
-  int y;
-  float zinv;
-  vec4 pos3d;
-  vec4 normal;
-  vec3 reflectance;
-
-  Pixel() {};
-  Pixel(ivec2 vec): x(vec.x), y(vec.y) {};
-  Pixel(ivec2 vec, float zinv, vec4 pos3d, vec4 normal, vec3 reflectance): x(vec.x), y(vec.y), zinv(zinv), pos3d(pos3d), normal(normal), reflectance(reflectance) {};
-};
-
-struct Vertex {
-  vec4 position;
-  vec4 normal;
-  vec3 reflectance;
-
-  Vertex(vec4 position): position(position) {};
-  Vertex(vec4 position, vec4 normal, vec3 reflectance): position(position), normal(normal), reflectance(reflectance) {};
-};
-
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS                                                                   */
 
-void Update();
-void Draw(screen* screen);
-void TransformationMatrix(mat4 &M);
-void VertexShader(const Vertex &v, Pixel &p);
-void PixelShader(screen* screen, const Pixel &p);
+void Update(Camera &camera);
+void Draw(screen* screen, Camera camera);
+void TransformationMatrix(vec3 rotation, vec4 position, mat4 &M);
+void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat);
+void PixelShader(screen* screen, const Pixel &p, Camera camera);
 void Interpolate(Pixel a, Pixel b, vector<Pixel>& result);
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result);
 void DrawLineSDL(SDL_Surface* surface, Pixel a, Pixel b, vec3 color);
 void DrawPolygonEdges(screen *screen, const vector<vec4> &vertices);
-mat4 CalcRotationMatrix(vec3 rotation);
 void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels);
 void DrawRows(const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels);
-void DrawPolygon(screen *screen, const vector<Vertex>& vertices);
+void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera camera);
+void ClipPolygon(vector<Pixel> &vertexPixels, int height, int width);
+void DrawShadowMap(Light &light);
 
 vector<Triangle> triangles;
-Camera camera;
+Light light;
 
-vec4 lightPos(0, -0.5, -0.7, 1);
-vec3 lightPower = 5.f * vec3(1, 1, 1);
+vec4 lightPos(0, -0.5, -1.2, 1);
+vec3 lightPower = 14.f * vec3(1, 1, 1);
 vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
 
 int main(int argc, char* argv[]) {
-  camera = {
+  Camera camera = {
     SCREEN_HEIGHT,
+    // lightPos,
+    // light.rot[0],
     vec4(0, 0, -3.001, 1),
     vec3(0, 0, 0),
     0.001,
     0.001,
   };
 
+  light.position = lightPos;
+  light.power = lightPower;
+  light.needsUpdate = true;
+
   screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
   
   LoadTestModel(triangles);
 
   while (NoQuitMessageSDL()) {
-    Update();
-    Draw(screen);
+    Update(camera);
+    DrawShadowMap(light);
+    Draw(screen, camera);
+    // for (int y = 0; y < LIGHTMAP_SIZE; y++) {
+    //   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
+    //     PutPixelSDL(screen, x, y, vec3(light.depthBuffer[2][y * LIGHTMAP_SIZE + x]), 100.f);
+    //   }
+    // }
     SDL_Renderframe(screen);
   }
 
@@ -99,27 +95,25 @@ int main(int argc, char* argv[]) {
 }
 
 /*Place your drawing here*/
-void Draw(screen* screen) {
+void Draw(screen* screen, Camera camera) {
   /* Clear buffer */
-  mat4 transMat;
-  TransformationMatrix(transMat);
   memset(screen->buffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(uint32_t));
-  
+  memset(screen->depthBuffer, 0, screen->height*screen->width*sizeof(float));
+
+  #pragma omp parallel for simd schedule(guided)
   for (uint32_t i = 0; i < triangles.size(); i++) {
     vector<Vertex> vertices({
-      Vertex(transMat * triangles[i].v0, triangles[i].normal, triangles[i].color),
-      Vertex(transMat * triangles[i].v1, triangles[i].normal, triangles[i].color),
-      Vertex(transMat * triangles[i].v2, triangles[i].normal, triangles[i].color)
+      Vertex(triangles[i].v0, triangles[i].normal, triangles[i].color),
+      Vertex(triangles[i].v1, triangles[i].normal, triangles[i].color),
+      Vertex(triangles[i].v2, triangles[i].normal, triangles[i].color)
     });
 
-    // DrawPolygonEdges(screen, vertices);
-    DrawPolygon(screen, vertices);
+    DrawPolygon(screen, vertices, camera);
   }
 }
 
 /*Place updates of parameters here*/
-void Update() {
+void Update(Camera &camera) {
   static int t = SDL_GetTicks();
   /* Compute frame time */
   int t2 = SDL_GetTicks();
@@ -178,178 +172,291 @@ void Update() {
   }
 }
 
-void VertexShader(const Vertex &v, Pixel &p) {
-  vec4 pos = v.position;
-  p.zinv = 1.f / pos.z;
-  p.x = int(camera.focalLength * pos.x * p.zinv) + (SCREEN_WIDTH / 2);
-  p.y = int(camera.focalLength * pos.y * p.zinv) + (SCREEN_HEIGHT / 2);
-  p.pos3d = v.position;
-  p.normal = v.normal;
+void TransformationMatrix(vec3 rotation, vec4 position, mat4 &M) {
+  mat4 rot = CalcRotationMatrix(rotation);
+  rot[3] = -1.f * position;
+  M = rot;
+}
+
+void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
+  vec4 pos = projMat * transMat * v.position;
+  p.homogenous = pos;
+  p.zinv = 1.f / (transMat * v.position).z;
+  p.worldPos = v.position;
+  p.normal = glm::normalize(transMat * v.normal);
   p.reflectance = v.reflectance;
 }
 
-void PixelShader(screen *screen, const Pixel &p) {
-  mat4 transMat;
-  TransformationMatrix(transMat);
-  vec3 r = vec3(transMat * lightPos - p.pos3d);
-  float rLen = glm::length(r);
-  vec4 rNorm = vec4(r / rLen, 1);
-  vec3 D = lightPower * max(glm::dot(rNorm, p.normal), 0.f) / float(4 * M_PI * powf(rLen, 2.f));
+void PixelShader(screen *screen, const Pixel &p, Camera camera) {
+  vec3 D;
+  if (light.test(p.worldPos)) {
+    mat4 transMat;
+    TransformationMatrix(camera.rotation, camera.position, transMat);
+    vec4 r = transMat * (light.position - p.worldPos);
+    float rLen = glm::length(r);
+    vec4 rNorm = r / rLen;
+    D = light.power * max(glm::dot(rNorm, p.normal), 0.f) / float(4 * M_PI * powf(rLen, 2.f));
+  } else {
+    D = vec3(0.f);
+  }
   vec3 illumination = p.reflectance * (D + indirectLightPowerPerArea);
   PutPixelSDL(screen, p.x, p.y, illumination, p.zinv);
 }
 
-void Interpolate(ivec2 a, ivec2 b, vector<ivec2>& result) {
-  int N = result.size();
-  vec2 step = vec2(b - a) / float(max(N-1,1));
-  vec2 current(a);
-
-  for(int i = 0; i < N; ++i) {
-    result[i] = current;
-    current += step;
-  }
+float edgeFunctionHom(Pixel a, Pixel b, Pixel p) {
+  int ax = a.homogenous.x / a.homogenous.w;
+  int ay = a.homogenous.y / a.homogenous.w;
+  int bx = b.homogenous.x / b.homogenous.w;
+  int by = b.homogenous.y / b.homogenous.w;
+  return (p.homogenous.x / p.homogenous.w - ax) * (by - ay) - (p.homogenous.y / p.homogenous.w - ay) * (bx - ax); 
 }
 
-void Interpolate(Pixel a, Pixel b, vector<Pixel>& result) {
-  int N = result.size();
-  float s = 1.f / float(max(N - 1, 1));
-
-  float stepX = float(b.x - a.x) * s;
-  float currentX = a.x;
-
-  float stepY = float(b.y - a.y) * s;
-  float currentY = a.y;
-
-  float stepZ = (b.zinv - a.zinv) * s;
-  float currentZ = a.zinv;
-
-  vec3 stepPos = (vec3(b.pos3d) * b.zinv - vec3(a.pos3d) * a.zinv) * s;
-  vec3 currentPos = vec3(a.pos3d) * a.zinv;
-
-  vec3 stepN = (vec3(b.normal) - vec3(a.normal)) * s;
-  vec3 currentN = vec3(a.normal);
-
-  for(int i = 0; i < N; ++i) {
-    result[i] = Pixel(ivec2(round(currentX), round(currentY)), currentZ, vec4(currentPos / currentZ, 1), vec4(currentN, 1), a.reflectance);
-    currentX += stepX;
-    currentY += stepY;
-    currentZ += stepZ;
-    currentPos += stepPos;
-    currentN += stepN;
-  }
+float edgeFunction(Pixel a, Pixel b, Pixel p) {
+  return (p.x - a.x) * (b.y - a.y) - (p.y - a.y) * (b.x - a.x); 
 }
 
-void DrawLineSDL(screen* screen, Pixel a, Pixel b, vec3 color) {
-  int dx = abs(a.x - b.x);
-  int dy = abs(a.y - b.y);
-  int pixels = max(dx, dy) + 1;
-  vector<Pixel> line(pixels);
-  Interpolate(a, b, line);
-
-  for (Pixel coord : line) {
-    PixelShader(screen, coord);
-  }
+void InterpolateBarycentric(vector<Pixel> vertexPixels, float w[3], Pixel &p) {
+  p.reflectance = vertexPixels[0].reflectance;
+  p.zinv = w[0] * vertexPixels[0].zinv + w[1] * vertexPixels[1].zinv + w[2] * vertexPixels[2].zinv;
+  p.worldPos = (w[0] * vertexPixels[0].worldPos * vertexPixels[0].zinv  + w[1] * vertexPixels[1].worldPos * vertexPixels[1].zinv + w[2] * vertexPixels[2].worldPos * vertexPixels[2].zinv) / p.zinv;
+  p.normal = glm::normalize((w[0] * vertexPixels[0].normal * vertexPixels[0].zinv + w[1] * vertexPixels[1].normal * vertexPixels[1].zinv + w[2] * vertexPixels[2].normal * vertexPixels[2].zinv) / p.zinv);
 }
 
-void DrawPolygonEdges(screen *screen, const vector<vec4> &vertices) {
-  int V = vertices.size();
-  // Transform each vertex from 3D world position to 2D image position:
-  vector<Pixel> projectedVertices(V);
+Pixel ClipEdge(Pixel i, Pixel j, vector<Pixel> vertexPixels, float a) {
+  assert(vertexPixels.size() == 3);
+  
+  float w[3];
+  Pixel p;
+  p.homogenous = (1 - a) * i.homogenous + a * j.homogenous;
+  float areaDen = 1 / edgeFunctionHom(vertexPixels[2], vertexPixels[1], vertexPixels[0]);
 
-  for (int i = 0; i < V; ++i) {
-    VertexShader(vertices[i], projectedVertices[i]);
-  }
-  // Loop over all vertices and draw the edge from it to the next vertex:
-  for (int i = 0; i < V; ++i) {
-    int j = (i + 1) % V; // The next vertex
-    vec3 color(1, 1, 1);
-    DrawLineSDL(screen, projectedVertices[i], projectedVertices[j], color);
-  }
+  w[0] = edgeFunctionHom(vertexPixels[2], vertexPixels[1], p) * areaDen;
+  w[1] = edgeFunctionHom(vertexPixels[0], vertexPixels[2], p) * areaDen;
+  w[2] = edgeFunctionHom(vertexPixels[1], vertexPixels[0], p) * areaDen;
+
+  InterpolateBarycentric(vertexPixels, w, p);
+  
+  return p;
 }
 
-mat4 CalcRotationMatrix(vec3 rotation) {
-  float x = rotation.x;
-  float y = rotation.y;
-  float z = rotation.z;
-  mat4 Rx = mat4(vec4(1, 0, 0, 0), vec4(0, cosf(x), sinf(x), 0), vec4(0, -sinf(x), cosf(x), 0), vec4(0, 0, 0, 1));
-  mat4 Ry = mat4(vec4(cosf(y), 0, -sinf(y), 0), vec4(0, 1, 0, 0), vec4(sinf(y), 0, cosf(y), 0), vec4(0 , 0, 0, 1));
-  mat4 Rz = mat4(vec4(cosf(z), sinf(z), 0, 0), vec4(-sinf(z), cosf(z), 0, 0), vec4(0, 0, 1, 0), vec4(0, 0, 0, 1));
-  return Rz * Ry * Rx;
-}
+void ClipPolygon(vector<Pixel> &vertexPixels, int height, int width) {
+  vector<Pixel> output = vertexPixels;
+  vector<Pixel> outputTemp;
 
-void TransformationMatrix(mat4 &M) {
-  mat3 eye = mat3(1);
-  mat4 rot = CalcRotationMatrix(camera.rotation);
-  rot[3] = -1.f * camera.position;
-  M = rot;
-}
+  // Z - axis
+  for (int i = 0; i < output.size(); ++i) {
+    int j = (i + 1) % output.size(); // The next vertex
+    float ip1 = output[i].homogenous.z - NEAR_PLANE;
+    float ip2 = output[i].homogenous.w * FAR_PLANE * height - output[i].homogenous.z;
+    float jp2 = output[j].homogenous.w * FAR_PLANE * height - output[j].homogenous.z;
+    float jp1 = output[j].homogenous.z - NEAR_PLANE;
 
-
-void ComputePolygonRows(const vector<Pixel>& vertexPixels, vector<Pixel>& leftPixels, vector<Pixel>& rightPixels) {
-  // 1. Find max and min y-value of the polygon
-  //    and compute the number of rows it occupies.
-  int minY = +numeric_limits<int>::max(), maxY = -numeric_limits<int>::max();
-  for (Pixel vertexPixel : vertexPixels) {
-    minY = minY > vertexPixel.y ? vertexPixel.y : minY;
-    maxY = maxY < vertexPixel.y ? vertexPixel.y : maxY;
-  }
-  int rows = abs(maxY - minY) + 1;
-
-  // 2. Resize leftPixels and rightPixels
-  //    so that they have an element for each row.
-
-  // 3. Initialize the x-coordinates in leftPixels
-  //    to some really large value and the x-coordinates
-  //    in rightPixels to some really small value.
-  leftPixels.reserve(rows);
-  rightPixels.reserve(rows);
-  for (int i = 0; i < rows; i++) {
-    leftPixels.push_back(Pixel(ivec2(+numeric_limits<int>::max(), minY + i)));
-    rightPixels.push_back(Pixel(ivec2(-numeric_limits<int>::max(), minY + i)));
+    if (ip1 >= 0 && ip2 >= 0 && jp1 >= 0 && jp2 >= 0) {
+      outputTemp.push_back(output[j]);
+    } else if (ip1 >= 0 && ip2 < 0 && jp1 >= 0 && jp2 >= 0) {
+      float a = jp2 / (jp2 - ip2);
+      outputTemp.push_back(ClipEdge(output[j], output[i], vertexPixels, a));
+      outputTemp.push_back(output[j]);
+    } else if (ip1 < 0 && ip2 >= 0 && jp1 >= 0 && jp2 >= 0) {
+      float a = jp1 / (jp1 - ip1);
+      outputTemp.push_back(ClipEdge(output[j], output[i], vertexPixels, a));
+      outputTemp.push_back(output[j]);
+    } else if (jp1 >= 0 && jp2 < 0 && ip1 >= 0 && ip2 >= 0) {
+      float a = ip2 / (ip2 - jp2);
+      outputTemp.push_back(ClipEdge(output[i], output[j], vertexPixels, a));
+    } else if (jp1 < 0 && jp2 >= 0 && ip1 >= 0 && ip2 >= 0) {
+      float a = ip1 / (ip1 - jp1);
+      outputTemp.push_back(ClipEdge(output[i], output[j], vertexPixels, a));
+    }
   }
 
-  // 4. Loop through all edges of the polygon and use
-  //    linear interpolation to find the x-coordinate for
-  //    each row it occupies. Update the corresponding
-  //    values in rightPixels and leftPixels.
+  output.swap(outputTemp);
+  outputTemp.clear();
+
+  // Y - axis
+  for (int i = 0; i < output.size(); ++i) {
+    int j = (i + 1) % output.size(); // The next vertex
+    float ip1 = output[i].homogenous.w * (height/2.f - 1) - output[i].homogenous.y;
+    float ip2 = output[i].homogenous.w * (height/2.f) + output[i].homogenous.y;
+    float jp2 = output[j].homogenous.w * (height/2.f) + output[j].homogenous.y;
+    float jp1 = output[j].homogenous.w * (height/2.f - 1) - output[j].homogenous.y;
+
+    if (ip1 >= 0 && ip2 >= 0 && jp1 >= 0 && jp2 >= 0) {
+      outputTemp.push_back(output[j]);
+    } else if (ip1 >= 0 && ip2 < 0 && jp1 >= 0 && jp2 >= 0) {
+      float a = jp2 / (jp2 - ip2);
+      outputTemp.push_back(ClipEdge(output[j], output[i], vertexPixels, a));
+      outputTemp.push_back(output[j]);
+    } else if (ip1 < 0 && ip2 >= 0 && jp1 >= 0 && jp2 >= 0) {
+      float a = jp1 / (jp1 - ip1);
+      outputTemp.push_back(ClipEdge(output[j], output[i], vertexPixels, a));
+      outputTemp.push_back(output[j]);
+    } else if (jp1 >= 0 && jp2 < 0 && ip1 >= 0 && ip2 >= 0) {
+      float a = ip2 / (ip2 - jp2);
+      outputTemp.push_back(ClipEdge(output[i], output[j], vertexPixels, a));
+    } else if (jp1 < 0 && jp2 >= 0 && ip1 >= 0 && ip2 >= 0) {
+      float a = ip1 / (ip1 - jp1);
+      outputTemp.push_back(ClipEdge(output[i], output[j], vertexPixels, a));
+    }
+  }
+
+  output.swap(outputTemp);
+  outputTemp.clear();
+
+  // X - axis
+  for (int i = 0; i < output.size(); ++i) {
+    int j = (i + 1) % output.size(); // The next vertex
+    float ip1 = output[i].homogenous.w * (width/2.f - 1) - output[i].homogenous.x;
+    float ip2 = output[i].homogenous.w * (width/2.f) + output[i].homogenous.x;
+    float jp2 = output[j].homogenous.w * (width/2.f) + output[j].homogenous.x;
+    float jp1 = output[j].homogenous.w * (width/2.f - 1) - output[j].homogenous.x;
+
+    if (ip1 >= 0 && ip2 >= 0 && jp1 >= 0 && jp2 >= 0) {
+      outputTemp.push_back(output[j]);
+    } else if (ip1 >= 0 && ip2 < 0 && jp1 >= 0 && jp2 >= 0) {
+      float a = jp2 / (jp2 - ip2);
+      outputTemp.push_back(ClipEdge(output[j], output[i], vertexPixels, a));
+      outputTemp.push_back(output[j]);
+    } else if (ip1 < 0 && ip2 >= 0 && jp1 >= 0 && jp2 >= 0) {
+      float a = jp1 / (jp1 - ip1);
+      outputTemp.push_back(ClipEdge(output[j], output[i], vertexPixels, a));
+      outputTemp.push_back(output[j]);
+    } else if (jp1 >= 0 && jp2 < 0 && ip1 >= 0 && ip2 >= 0) {
+      float a = ip2 / (ip2 - jp2);
+      outputTemp.push_back(ClipEdge(output[i], output[j], vertexPixels, a));
+    } else if (jp1 < 0 && jp2 >= 0 && ip1 >= 0 && ip2 >= 0) {
+      float a = ip1 / (ip1 - jp1);
+      outputTemp.push_back(ClipEdge(output[i], output[j], vertexPixels, a));
+    }
+  }
+
+  vertexPixels = outputTemp;
+}
+
+void GetBounds(vector<Pixel> vertexPixels, int &minX, int &minY, int &maxX, int &maxY) {
+  assert(vertexPixels.size() > 0);
+  minY = +numeric_limits<int>::max();
+  minX = +numeric_limits<int>::max();
+  maxY = -numeric_limits<int>::max();
+  maxX = -numeric_limits<int>::max();
+
   for (int i = 0; i < vertexPixels.size(); ++i) {
-    int j = (i + 1) % vertexPixels.size(); // The next vertex
-    vector<Pixel> coords(rows);
-    Interpolate(vertexPixels[i], vertexPixels[j], coords);
-    for (Pixel coord : coords) {
-      // cout << coord.y << " " << minY << endl;
-      assert((coord.y - minY) >= 0);
-      if (leftPixels[coord.y - minY].x > coord.x) {
-        leftPixels[coord.y - minY] = coord;
-      }
-      if (rightPixels[coord.y - minY].x < coord.x) {
-        rightPixels[coord.y - minY] = coord;
-      }
+    if (minX > vertexPixels[i].x) {
+      minX = vertexPixels[i].x;
+    }
+    if (minY > vertexPixels[i].y) {
+      minY = vertexPixels[i].y;
+    }
+    if (maxX < vertexPixels[i].x) {
+      maxX = vertexPixels[i].x;
+    }
+    if (maxY < vertexPixels[i].y) {
+      maxY = vertexPixels[i].y;
     }
   }
 }
 
-void DrawRows(screen *screen, const vector<Pixel>& leftPixels, const vector<Pixel>& rightPixels) {
-  for (int i = 0; i < leftPixels.size(); i++) {
-    int pixels = abs(rightPixels[i].x - leftPixels[i].x) + 1;
-    vector<Pixel> ps(pixels);
-    Interpolate(rightPixels[i], leftPixels[i], ps);
-    for (Pixel p : ps) {
-      PixelShader(screen, p);
+void FillTriangles(screen* screen, vector<Pixel> vertexPixels, Camera camera) {
+  assert(vertexPixels.size() == 3);
+
+  // for (Pixel p : vertexPixels) {
+  //   PutPixelSDL(screen, p.x, p.y, vec3(1, 0.2, 0.2), 10.f);
+  // }
+  // return;
+
+  int minX, minY, maxX, maxY;
+  Pixel p;
+  float w[3];
+  bool inside;
+
+  GetBounds(vertexPixels, minX, minY, maxX, maxY);
+  assert(minX != +numeric_limits<int>::max());
+  assert(minY != +numeric_limits<int>::max());
+  assert(maxX != -numeric_limits<int>::max());
+  assert(maxY != -numeric_limits<int>::max());
+
+  float areaDen = 1 / edgeFunction(vertexPixels[2], vertexPixels[1], vertexPixels[0]);
+
+  #pragma omp simd
+  for (int x = minX; x <= maxX; x++) {
+    for (int y = minY; y <= maxY; y++) {
+      p.x = x;
+      p.y = y;
+      w[0] = edgeFunction(vertexPixels[2], vertexPixels[1], p) * areaDen;
+      w[1] = edgeFunction(vertexPixels[0], vertexPixels[2], p) * areaDen;
+      w[2] = edgeFunction(vertexPixels[1], vertexPixels[0], p) * areaDen;
+      inside = true;
+      for (int i = 0; i < 3; ++i) {
+        inside &= w[i] >= 0;
+      }
+      if (inside == true) {
+        InterpolateBarycentric(vertexPixels, w, p);
+        PixelShader(screen, p, camera);
+      } 
     }
   }
 }
 
-void DrawPolygon(screen *screen, const vector<Vertex>& vertices) {
-    int V = vertices.size();
-    vector<Pixel> vertexPixels(V);
+void DrawPolygon(screen *screen, const vector<Vertex>& vertices, Camera camera) {
+  int V = vertices.size();
+  vector<Pixel> vertexPixels(V);
 
-    for(int i = 0; i < V; ++i) {
-      VertexShader(vertices[i], vertexPixels[i]);
+  mat4 transMat;
+  TransformationMatrix(camera.rotation, camera.position, transMat);
+  mat4 projMat = mat4(1);
+  // projMat[2].z = (- NEAR_PLANE - FAR_PLANE) / (NEAR_PLANE - FAR_PLANE);
+  projMat[2].w = 1 / camera.focalLength;
+  // projMat[3].z = (2 * FAR_PLANE * NEAR_PLANE) / (NEAR_PLANE - FAR_PLANE);
+  projMat[3].w = 0;
+  for(int i = 0; i < V; ++i) {
+    VertexShader(vertices[i], vertexPixels[i], transMat, projMat);
+  }
+  
+  ClipPolygon(vertexPixels, screen->height, screen->width);
+  // homogenous divide
+  for (int i = 0; i < vertexPixels.size(); i++) {
+    vertexPixels[i].homogenous /= vertexPixels[i].homogenous.w;
+    vertexPixels[i].x = round(vertexPixels[i].homogenous.x + screen->width / 2);
+    vertexPixels[i].y = round(vertexPixels[i].homogenous.y + screen->height / 2);
+  }
+
+  if (vertexPixels.size() < 3) { 
+    return;
+  }
+  if (vertexPixels.size() >= 4) {
+    for (int i = 1; i < vertexPixels.size() - 1; i++) {
+      vector<Pixel> verts;
+      verts.push_back(vertexPixels[0]);
+      verts.push_back(vertexPixels[i]);
+      verts.push_back(vertexPixels[i + 1]);
+      FillTriangles(screen, verts, camera);
     }
+  } else {
+    FillTriangles(screen, vertexPixels, camera);
+  }
+}
 
-    vector<Pixel> leftPixels;
-    vector<Pixel> rightPixels;
-    ComputePolygonRows(vertexPixels, leftPixels, rightPixels);
-    DrawRows(screen, leftPixels, rightPixels);
+void DrawShadowMap(Light &light) {
+  if (light.needsUpdate == true) {
+    screen s;
+    s.width = LIGHTMAP_SIZE;
+    s.height = LIGHTMAP_SIZE;
+    s.buffer = new uint32_t[LIGHTMAP_SIZE * LIGHTMAP_SIZE];
+    s.depthBuffer = new float[LIGHTMAP_SIZE * LIGHTMAP_SIZE];
+
+    for (int idx = 0; idx < 6; idx++) {
+      Camera camera = {
+        LIGHTMAP_SIZE,
+        lightPos,
+        light.rot[idx],
+        0.001,
+        0.001,
+      };
+
+      Draw(&s, camera);
+
+      memcpy(light.depthBuffer[idx], s.depthBuffer, LIGHTMAP_SIZE * LIGHTMAP_SIZE * sizeof(float));
+    }
+  }
+  light.needsUpdate = false;
 }

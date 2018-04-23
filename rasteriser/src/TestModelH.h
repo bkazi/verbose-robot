@@ -30,7 +30,7 @@ public:
 	  normal.x = normal3.x;
 	  normal.y = normal3.y;
 	  normal.z = normal3.z;
-	  normal.w = 1.0;
+	  normal.w = 0.0;
 	}
 };
 
