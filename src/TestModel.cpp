@@ -54,12 +54,12 @@ void LoadTestModel(std::vector<Object *> &scene) {
   lightPrimitives.push_back(
       new Triangle(vec4(3 * L / 4, 0.99 * L, 1 * L / 4, 1),
                    vec4(1 * L / 4, 0.99 * L, 1 * L / 4, 1),
-                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 10.0f * vec3(1),
+                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 30.0f * vec3(1),
                    vec3(0), 1, 0.1, 0.1, 0.8));
   lightPrimitives.push_back(
       new Triangle(vec4(1 * L / 4, 0.99 * L, 1 * L / 4, 1),
                    vec4(1 * L / 4, 0.99 * L, 3 * L / 4, 1),
-                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 10.0f * vec3(1),
+                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 30.0f * vec3(1),
                    vec3(0), 1, 0.1, 0.1, 0.8));
   scene.push_back(new Object(lightPrimitives));
 
@@ -151,24 +151,24 @@ void LoadTestModel(std::vector<Object *> &scene) {
 
   std::vector<Primitive *> tallBlockPrimitives;
   // Front
-  tallBlockPrimitives.push_back( new Triangle(E, B, A, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
-  tallBlockPrimitives.push_back( new Triangle(E, F, B, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(E, B, A, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
+  tallBlockPrimitives.push_back( new Triangle(E, F, B, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
 
   // Front
-  tallBlockPrimitives.push_back( new Triangle(F, D, B, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
-  tallBlockPrimitives.push_back( new Triangle(F, H, D, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(F, D, B, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
+  tallBlockPrimitives.push_back( new Triangle(F, H, D, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
 
   // BACK
-  tallBlockPrimitives.push_back( new Triangle(H, C, D, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
-  tallBlockPrimitives.push_back( new Triangle(H, G, C, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(H, C, D, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
+  tallBlockPrimitives.push_back( new Triangle(H, G, C, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
 
   // LEFT
-  tallBlockPrimitives.push_back( new Triangle(G, E, C, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
-  tallBlockPrimitives.push_back( new Triangle(E, A, C, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(G, E, C, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
+  tallBlockPrimitives.push_back( new Triangle(E, A, C, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
 
   // TOP
-  tallBlockPrimitives.push_back( new Triangle(G, F, E, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
-  tallBlockPrimitives.push_back( new Triangle(G, H, F, vec3(0), blue, 2, 1.0, 0.5, 0.5) );
+  tallBlockPrimitives.push_back( new Triangle(G, F, E, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
+  tallBlockPrimitives.push_back( new Triangle(G, H, F, vec3(0), blue, 2, 1.0, 1.0, 1.0) );
   scene.push_back(new Object(tallBlockPrimitives));
 
   // ----------------------------------------------
