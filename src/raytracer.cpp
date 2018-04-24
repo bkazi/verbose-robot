@@ -33,8 +33,8 @@ using glm::ivec2;
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
-#define MIN_BOUNCES 5
-#define MAX_BOUNCES 10
+#define MIN_BOUNCES 10
+#define MAX_BOUNCES 20
 #define AA
 #define LIVE
 
@@ -55,6 +55,7 @@ vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce,
                    bool spec);
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
+vec3 sampleConeBase(float b);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, int bounce = 0);
 float max3(vec3);
@@ -190,7 +191,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
               directSpecularLight +=
                   light->emit *
                   max(powf(glm::dot(reflected, dir), intersection.primitive->shininess),
-                      0.0f) /
+                      0.0f) * max(glm::dot(lightDir, normal), 0.0f) /
                   (float)(4 * M_PI * powf(lightDist, 2));
               directDiffuseLight += light->emit *
                                     max(glm::dot(lightDir, normal), 0.0f) /
@@ -203,14 +204,30 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
 
     // Indirect Light
     vec3 indirectLight = vec3(0);
-    vec3 Nt, Nb;
-    createCoordinateSystem(vec3(normal), Nt, Nb);
-    float r1 = distribution(generator);
-    float r2 = distribution(generator);
-    vec3 sample = uniformSampleHemisphere(r1, r2);
-    vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
-    vec4 rayDir = vec4(sampleWorld, 1);
-    indirectLight += intersection.primitive->Kd * Light(hitPos, rayDir, bounce + 1);
+    float prob = intersection.primitive->Kd / (intersection.primitive->Kd + intersection.primitive->Ks);
+    if ((rand() / (float) RAND_MAX) < prob) {
+      // diffuse
+      vec3 Nt, Nb;
+      float r1 = distribution(generator);
+      float r2 = distribution(generator);
+      vec3 sample = uniformSampleHemisphere(r1, r2);
+      createCoordinateSystem(vec3(normal), Nt, Nb);
+      vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
+      vec4 rayDir = vec4(sampleWorld, 1);
+      indirectLight += Light(hitPos, rayDir, bounce + 1) / float(M_2_PI);
+    } else {
+      //specular
+      vec3 Nt, Nb;
+      vec4 reflected = glm::reflect(dir, normal);
+      createCoordinateSystem(vec3(reflected), Nt, Nb);
+      vec3 sample = sampleConeBase(10.f / intersection.primitive->shininess);
+      vec3 sampleWorld = vec3(mat3(Nb, vec3(reflected), Nt) * sample);
+      vec4 rayDir = glm::normalize(vec4(sampleWorld, 1));
+      indirectLight += Light(hitPos, rayDir, bounce + 1);
+    }
+    indirectLight = glm::clamp(
+      indirectLight, vec3(0), vec3(3)
+    );
 
     return intersection.primitive->emit +
             intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
@@ -234,6 +251,12 @@ void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
   else
     Nt = glm::normalize(vec3(0, -N.z, N.y));
   Nb = glm::cross(N, Nt);
+}
+
+vec3 sampleConeBase(float b) {
+  float r = b * sqrt(rand() / (float) RAND_MAX);
+  float t = 2 * M_PI * (rand() / (float) RAND_MAX);
+  return vec3(r * cos(t), 1, r * sin(t));
 }
 
 float max3(vec3 v) { return max(v.x, max(v.y, v.z)); }

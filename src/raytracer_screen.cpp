@@ -123,6 +123,6 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, int samples) {
     return;
   }
   
-  s->pixels[y*s->width+x] += colour / 10.f;
+  s->pixels[y*s->width+x] += colour / 1.2f;
   s->samples = samples;
 }
