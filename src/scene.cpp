@@ -141,7 +141,8 @@ void Scene::LoadModel(string path) {
               3.0f,
           dot(vec3(1), vec3(material.diffuse[0], material.diffuse[1],
                             material.diffuse[2])) /
-              3.0f));
+              3.0f,
+          material.ior, false));
     }
 
     objects.push_back(new Object(primitives));

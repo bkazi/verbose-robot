@@ -49,8 +49,8 @@ void Object::computeBounds(const vec3 &planeNormal, float &dnear, float &dfar) {
 
 /* SHAPE CLASS IMPLEMENTATION */
 Primitive::Primitive(vec3 emit, vec3 color, float shininess, float Ka, float Ks,
-                     float Kd)
-    : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd) {}
+                     float Kd, float ior, bool glass)
+    : emit(emit), color(color), shininess(shininess), Ka(Ka), Ks(Ks), Kd(Kd), ior(ior), glass(glass) {}
 vec4 Primitive::randomPoint() { return vec4(); };
 vec4 Primitive::getNormal(const vec4 &p) { return vec4(); };
 bool Primitive::isLight() { return emit.x > 0 || emit.y > 0 || emit.z > 0; }
@@ -58,8 +58,8 @@ float Primitive::intersect(Ray *ray) { return INFINITY; }
 
 /* TRIANGLE CLASS IMPLEMENTATION */
 Triangle::Triangle(vec4 v0, vec4 v1, vec4 v2, vec3 emit, vec3 color,
-                   float shininess, float Ka, float Ks, float Kd)
-    : Primitive(emit, color, shininess, Ka, Ks, Kd), v0(v0), v1(v1), v2(v2) {
+                   float shininess, float Ka, float Ks, float Kd, float ior, bool glass)
+    : Primitive(emit, color, shininess, Ka, Ks, Kd, ior, glass), v0(v0), v1(v1), v2(v2) {
   Triangle::ComputeNormal();
 }
 vec4 Triangle::getNormal(const vec4 &p) { return normal; }
@@ -97,8 +97,8 @@ void Triangle::ComputeNormal() {
 
 /* SPHERE CLASS IMPLEMENTATION */
 Sphere::Sphere(vec4 c, float radius, vec3 emit, vec3 color, float shininess,
-               float Ka, float Ks, float Kd)
-    : Primitive(emit, color, shininess, Ka, Ks, Kd), c(c), radius(radius) {}
+               float Ka, float Ks, float Kd, float ior, bool glass)
+    : Primitive(emit, color, shininess, Ka, Ks, Kd, ior, glass), c(c), radius(radius) {}
 vec4 Sphere::getNormal(const vec4 &p) { return (p - c) / radius; }
 float Sphere::intersect(Ray *ray) {
   vec4 sC = ray->position - c;

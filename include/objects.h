@@ -28,9 +28,11 @@ public:
   float Ka;
   float Ks;
   float Kd;
+  float ior;
+  bool glass;
 
   Primitive(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
-        float Kd);
+        float Kd, float ior, bool glass);
   virtual float intersect(Ray *ray);
   virtual glm::vec4 randomPoint();
   virtual glm::vec4 getNormal(const glm::vec4 &p);
@@ -53,7 +55,7 @@ class Triangle : public Primitive {
   glm::vec3 e2;
 
   Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit,
-           glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
+           glm::vec3 color, float shininess, float Ka, float Ks, float Kd, float ior, bool glass);
 
   glm::vec4 getNormal(const glm::vec4 &p = glm::vec4(0)) override;
 
@@ -73,7 +75,7 @@ class Sphere : public Primitive {
   float radius;
 
   Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color,
-         float shininess, float Ka, float Ks, float Kd);
+         float shininess, float Ka, float Ks, float Kd, float ior, bool glass);
 
   glm::vec4 getNormal(const glm::vec4 &p) override;
 
