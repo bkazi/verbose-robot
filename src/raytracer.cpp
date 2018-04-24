@@ -35,7 +35,7 @@ using glm::ivec2;
 #define FULLSCREEN_MODE false
 #define MIN_BOUNCES 10
 #define MAX_BOUNCES 20
-#define AA
+// #define AA
 #define LIVE
 
 float m = numeric_limits<float>::max();
@@ -201,6 +201,8 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
         }
       }
     }
+    directSpecularLight = glm::clamp(directSpecularLight, vec3(0), vec3(1));
+    directDiffuseLight = glm::clamp(directDiffuseLight, vec3(0), vec3(1));
 
     // Indirect Light
     vec3 indirectLight = vec3(0);
@@ -214,7 +216,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
       createCoordinateSystem(vec3(normal), Nt, Nb);
       vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
       vec4 rayDir = vec4(sampleWorld, 1);
-      indirectLight += Light(hitPos, rayDir, bounce + 1) / float(M_2_PI);
+      indirectLight += Light(hitPos, rayDir, bounce + 1);
     } else {
       //specular
       vec3 Nt, Nb;
@@ -226,7 +228,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
       indirectLight += Light(hitPos, rayDir, bounce + 1);
     }
     indirectLight = glm::clamp(
-      indirectLight, vec3(0), vec3(3)
+      indirectLight, vec3(0), vec3(1)
     );
 
     return intersection.primitive->emit +
