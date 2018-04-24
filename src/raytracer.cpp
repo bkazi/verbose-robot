@@ -30,11 +30,11 @@ using glm::vec3;
 using glm::vec4;
 using glm::ivec2;
 
-#define SCREEN_WIDTH 480
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 240
 #define FULLSCREEN_MODE false
-#define MIN_BOUNCES 10
-#define MAX_BOUNCES 20
+#define MIN_BOUNCES 5
+#define MAX_BOUNCES 10
 // #define AA
 #define LIVE
 
@@ -50,14 +50,11 @@ float apertureSize = 0.1;
 void Update(screen *screen);
 void Draw(screen *screen);
 bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection);
-vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec);
-vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce,
-                   bool spec);
 mat3 CalcRotationMatrix(float x, float y, float z);
 vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 vec3 sampleConeBase(float b);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
-vec3 Light(const vec4 start, const vec4 dir, int bounce = 0);
+vec3 Light(const vec4 start, const vec4 dir, float currIor = 1.f, int bounce = 0);
 float max3(vec3);
 void LoadModel(vector<Object *> &scene, const char *path);
 
@@ -159,7 +156,7 @@ void Update(screen *screen) {
 std::default_random_engine generator;
 std::uniform_real_distribution<float> distribution(0, 1);
 
-vec3 Light(const vec4 start, const vec4 dir, int bounce) {
+vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
   Intersection intersection;
   if (scene->intersect(new Ray(start + dir * 1e-4f, dir), intersection)) {
     // Russian roulette termination
@@ -207,7 +204,15 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     // Indirect Light
     vec3 indirectLight = vec3(0);
     float prob = intersection.primitive->Kd / (intersection.primitive->Kd + intersection.primitive->Ks);
-    if ((rand() / (float) RAND_MAX) < prob) {
+    if (intersection.primitive->glass) {
+      bool isInside = currIor != 1.f;
+      float eta = !isInside ? 1.f/intersection.primitive->ior : intersection.primitive->ior;
+      float newIor = isInside ? 1.f : intersection.primitive->ior;
+      vec4 reflected = glm::reflect(dir, normal);
+      vec4 refracted = glm::refract(dir, normal, eta);
+      indirectLight += 0.1f * Light(hitPos, reflected, newIor, bounce + 1);
+      indirectLight += 0.9f * Light(hitPos, refracted, newIor, bounce + 1);
+    } else if ((rand() / (float) RAND_MAX) < prob) {
       // diffuse
       vec3 Nt, Nb;
       float r1 = distribution(generator);
@@ -216,7 +221,7 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
       createCoordinateSystem(vec3(normal), Nt, Nb);
       vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
       vec4 rayDir = vec4(sampleWorld, 1);
-      indirectLight += Light(hitPos, rayDir, bounce + 1);
+      indirectLight += Light(hitPos, rayDir, intersection.primitive->ior, bounce + 1);
     } else {
       //specular
       vec3 Nt, Nb;
@@ -225,10 +230,10 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
       vec3 sample = sampleConeBase(10.f / intersection.primitive->shininess);
       vec3 sampleWorld = vec3(mat3(Nb, vec3(reflected), Nt) * sample);
       vec4 rayDir = glm::normalize(vec4(sampleWorld, 1));
-      indirectLight += Light(hitPos, rayDir, bounce + 1);
+      indirectLight += Light(hitPos, rayDir, intersection.primitive->ior, bounce + 1);
     }
     indirectLight = glm::clamp(
-      indirectLight, vec3(0), vec3(1)
+      indirectLight, vec3(0), vec3(2)
     );
 
     return intersection.primitive->emit +
