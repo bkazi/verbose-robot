@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <opencv/cv.hpp>
 // #include <glm/gtx/string_cast.hpp>
 #include <SDL.h>
 
@@ -12,6 +13,7 @@
 #include "util.h"
 #include "camera.h"
 
+using namespace cv;
 using namespace std;
 using glm::ivec2;
 using glm::mat3;

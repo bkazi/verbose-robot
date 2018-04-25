@@ -27,6 +27,7 @@ COMPILE = $(CXX) -o $@ -c $< $(CXXFLAGS)
 
 # Link Options
 LDFLAGS += $(shell sdl2-config --libs) -fopenmp
+LDLIBS = `pkg-config --libs opencv`
 LINK_RAYTRACER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/rasteriser.o $(BUILDDIR)/rasteriser_screen.o, $^) $(LDFLAGS) $(LDLIBS)
 LINK_RASTERISER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/raytracer.o $(BUILDDIR)/raytracer_screen.o, $^) $(LDFLAGS) $(LDLIBS)
 
