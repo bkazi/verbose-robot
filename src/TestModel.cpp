@@ -24,16 +24,15 @@ void LoadTestModel(std::vector<Object *> &scene) {
   Material sphere1Material;
   sphere1Material.color = white;
   sphere1Material.ambient = vec3(1.0);
-  sphere1Material.specular = vec3(1.0);
   sphere1Material.transmittance = vec3(1);
-  sphere1Material.shininess = 200.f;
   sphere1Material.refractiveIndex = 1.5;
 
   Material sphere2Material;
   sphere2Material.color = white;
   sphere2Material.ambient = vec3(1);
-  sphere2Material.diffuse = vec3(1);
+  sphere2Material.diffuse = vec3(0.1);
   sphere2Material.specular = vec3(1);
+  sphere2Material.shininess = 100.f;
 
   Material lightMaterial;
   lightMaterial.ambient = vec3(0.1);
@@ -44,9 +43,9 @@ void LoadTestModel(std::vector<Object *> &scene) {
   Material floorMaterial;
   floorMaterial.color = white;
   floorMaterial.ambient = vec3(1);
-  floorMaterial.diffuse = vec3(0.5);
+  floorMaterial.diffuse = vec3(0.6);
   floorMaterial.specular = vec3(1);
-  floorMaterial.shininess = 50.f;
+  floorMaterial.shininess = 20.f;
 
   Material leftWallMaterial;
   leftWallMaterial.color = red;
@@ -77,21 +76,20 @@ void LoadTestModel(std::vector<Object *> &scene) {
   backWallMaterial.shininess = 10.f;
 
   Material shortBlockMaterial;
-  shortBlockMaterial.color = cyan;
+  shortBlockMaterial.color = purple;
   shortBlockMaterial.ambient = vec3(1);
   shortBlockMaterial.diffuse = vec3(1);
-  shortBlockMaterial.specular = vec3(0.8);
-  shortBlockMaterial.shininess = 20.f;
+  shortBlockMaterial.specular = vec3(0.3);
+  shortBlockMaterial.shininess = 5.f;
 
   Material tallBlockMaterial;
-  tallBlockMaterial.color = purple;
+  tallBlockMaterial.color = cyan;
   tallBlockMaterial.ambient = vec3(1);
   tallBlockMaterial.diffuse = vec3(1);
 
   // ---------------------------------------------------------------------------
   // Sphere 1
   std::vector<Primitive *> sphere1Primitives;
-
   sphere1Primitives.push_back(
       new Sphere(vec4(-0.5, 0.5, -0.5, 1), 0.35f, sphere1Material));
   scene.push_back(new Object(sphere1Primitives));
@@ -122,13 +120,13 @@ void LoadTestModel(std::vector<Object *> &scene) {
   std::vector<Primitive *> lightPrimitives;
 
   lightPrimitives.push_back(new Triangle(
-      Vertex(vec4(3 * L / 5, 0.99 * L, 2 * L / 5, 1)),
-      Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
-      Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)), lightMaterial));
+      Vertex(vec4(3.5 * L / 5, 0.99 * L, 1.5 * L / 5, 1)),
+      Vertex(vec4(1.5 * L / 5, 0.99 * L, 1.5 * L / 5, 1)),
+      Vertex(vec4(3.5 * L / 5, 0.99 * L, 2.5 * L / 5, 1)), lightMaterial));
   lightPrimitives.push_back(new Triangle(
-      Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
-      Vertex(vec4(2 * L / 5, 0.99 * L, 3 * L / 5, 1)),
-      Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)), lightMaterial));
+      Vertex(vec4(1.5 * L / 5, 0.99 * L, 1.5 * L / 5, 1)),
+      Vertex(vec4(1.5 * L / 5, 0.99 * L, 2.5 * L / 5, 1)),
+      Vertex(vec4(3.5 * L / 5, 0.99 * L, 2.5 * L / 5, 1)), lightMaterial));
   scene.push_back(new Object(lightPrimitives));
 
   // Floor:
