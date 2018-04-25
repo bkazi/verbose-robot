@@ -127,9 +127,9 @@ void cvPackToScreen(screen* s, Mat mat) {
     for (uint32_t x = 0; x < s->width; ++x) {
       Vec3b color = mat.at<Vec3b>(Point(x, y));
 
-      uint32_t r = uint32_t(glm::clamp((float) color[2], 0.f, 255.f));
-      uint32_t g = uint32_t(glm::clamp((float) color[1], 0.f, 255.f));
-      uint32_t b = uint32_t(glm::clamp((float) color[0], 0.f, 255.f));
+      uint32_t r = uint32_t(glm::clamp((float)color[2], 0.f, 255.f));
+      uint32_t g = uint32_t(glm::clamp((float)color[1], 0.f, 255.f));
+      uint32_t b = uint32_t(glm::clamp((float)color[0], 0.f, 255.f));
 
       s->buffer[y * s->width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
     }

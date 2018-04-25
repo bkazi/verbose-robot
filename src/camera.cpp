@@ -1,8 +1,8 @@
 #include <SDL.h>
 
-#include "camera.h"
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
+#include "camera.h"
 
 using namespace std;
 using glm::mat4;

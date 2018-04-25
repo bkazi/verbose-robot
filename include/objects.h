@@ -30,6 +30,16 @@ struct Texture {
 };
 
 struct Material {
+  Material()
+      : color(glm::vec3(0)),
+        ambient(glm::vec3(0)),
+        diffuse(glm::vec3(0)),
+        specular(glm::vec3(0)),
+        transmittance(glm::vec3(0)),
+        emission(glm::vec3(0)),
+        shininess(1.f),
+        refractiveIndex(1.f),
+        dissolve(0.f) {}
   glm::vec3 color;
   glm::vec3 ambient;
   glm::vec3 diffuse;

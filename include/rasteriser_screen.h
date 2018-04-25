@@ -2,8 +2,8 @@
 #define RASTERISER_SCREEN_H
 
 #include <glm/glm.hpp>
-#include "SDL.h"
 #include <opencv/cv.hpp>
+#include "SDL.h"
 
 typedef struct {
   SDL_Window *window;
@@ -15,12 +15,12 @@ typedef struct {
   float *depthBuffer;
 } screen;
 
-screen* InitializeSDL( int width, int height, bool fullscreen = false );
+screen *InitializeSDL(int width, int height, bool fullscreen = false);
 bool NoQuitMessageSDL();
-void PutPixelSDL( screen *s, int x, int y, glm::vec3 color, float depth);
+void PutPixelSDL(screen *s, int x, int y, glm::vec3 color, float depth);
 void SDL_Renderframe(screen *s);
-void KillSDL(screen* s);
-void SDL_SaveImage(screen *s, const char* filename);
+void KillSDL(screen *s);
+void SDL_SaveImage(screen *s, const char *filename);
 cv::Mat cvUnpackToMat(screen *s);
 void cvPackToScreen(screen *screen, cv::Mat mat);
 #endif

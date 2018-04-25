@@ -1,11 +1,11 @@
+#include <SDL.h>
 #include <assert.h>
 #include <stdint.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <opencv/cv.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <SDL.h>
 
 #include "camera.h"
 #include "light.h"
@@ -115,10 +115,14 @@ void Draw(screen *screen, Camera *camera) {
       Triangle *tri;
       if ((tri = dynamic_cast<Triangle *>(scene->objects[i]->primitives[j]))) {
         vector<Vertex> vertices({
-            // Remake vertices to use primitive material color instead of vertex color
-            Vertex(tri->v0.position, tri->v0.normal, tri->v0.uv, tri->material.color),
-            Vertex(tri->v1.position, tri->v1.normal, tri->v1.uv, tri->material.color),
-            Vertex(tri->v2.position, tri->v2.normal, tri->v2.uv, tri->material.color),
+            // Remake vertices to use primitive material color instead of vertex
+            // color
+            Vertex(tri->v0.position, tri->v0.normal, tri->v0.uv,
+                   tri->material.color),
+            Vertex(tri->v1.position, tri->v1.normal, tri->v1.uv,
+                   tri->material.color),
+            Vertex(tri->v2.position, tri->v2.normal, tri->v2.uv,
+                   tri->material.color),
         });
 
         DrawPolygon(screen, vertices, camera);

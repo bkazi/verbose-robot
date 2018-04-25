@@ -21,81 +21,86 @@ void LoadTestModel(std::vector<Object *> &scene) {
   vec3 white(0.75f, 0.75f, 0.75f);
 
   // Define materials
+  Material sphere1Material;
+  sphere1Material.color = white;
+  sphere1Material.ambient = vec3(1.0);
+  sphere1Material.specular = vec3(1.0);
+  sphere1Material.transmittance = vec3(1);
+  sphere1Material.shininess = 200.f;
+  sphere1Material.refractiveIndex = 1.5;
 
-  Material sphereMaterial;
-  sphereMaterial.color = cyan;
-  sphereMaterial.ambient = vec3(0.5);
-  sphereMaterial.diffuse = vec3(0.46);
-  sphereMaterial.specular = vec3(0.04);
-  sphereMaterial.emission = vec3(0);
-  sphereMaterial.shininess = 2.f;
+  Material sphere2Material;
+  sphere2Material.color = white;
+  sphere2Material.ambient = vec3(1);
+  sphere2Material.diffuse = vec3(1);
+  sphere2Material.specular = vec3(1);
 
   Material lightMaterial;
-  lightMaterial.color = vec3(0);
   lightMaterial.ambient = vec3(0.1);
   lightMaterial.diffuse = vec3(0.8);
   lightMaterial.specular = vec3(0.1);
-  lightMaterial.emission = 50.f * vec3(1);
-  lightMaterial.shininess = 1.f;
-
-//   emit
-//   color
-//   shininess
-//   a
-//   s
-//   d
+  lightMaterial.emission = 15.f * vec3(1);
 
   Material floorMaterial;
   floorMaterial.color = white;
-  floorMaterial.ambient = vec3(0.5);
-  floorMaterial.diffuse = vec3(0.44);
-  floorMaterial.specular = vec3(0.06);
-  floorMaterial.emission = vec3(0);
-  floorMaterial.shininess = 10.f;
+  floorMaterial.ambient = vec3(1);
+  floorMaterial.diffuse = vec3(0.5);
+  floorMaterial.specular = vec3(1);
+  floorMaterial.shininess = 50.f;
 
   Material leftWallMaterial;
   leftWallMaterial.color = red;
-  leftWallMaterial.ambient = vec3(0.5);
-  leftWallMaterial.diffuse = vec3(0.46);
-  leftWallMaterial.specular = vec3(0.04);
-  leftWallMaterial.emission = vec3(0);
+  leftWallMaterial.ambient = vec3(1);
+  leftWallMaterial.diffuse = vec3(1);
+  leftWallMaterial.specular = vec3(0.2);
   leftWallMaterial.shininess = 2.f;
 
   Material rightWallMaterial;
   rightWallMaterial.color = green;
-  rightWallMaterial.ambient = vec3(0.5);
-  rightWallMaterial.diffuse = vec3(0.46);
-  rightWallMaterial.specular = vec3(0.04);
-  rightWallMaterial.emission = vec3(0);
+  rightWallMaterial.ambient = vec3(1);
+  rightWallMaterial.diffuse = vec3(1);
+  rightWallMaterial.specular = vec3(0.2);
   rightWallMaterial.shininess = 2.f;
 
   Material ceilingMaterial;
   ceilingMaterial.color = white;
-  ceilingMaterial.ambient = vec3(0.5);
-  ceilingMaterial.diffuse = vec3(0.04);
-  ceilingMaterial.specular = vec3(0.46);
-  ceilingMaterial.emission = vec3(0);
+  ceilingMaterial.ambient = vec3(1);
+  ceilingMaterial.diffuse = vec3(1);
+  ceilingMaterial.specular = vec3(0.3);
   ceilingMaterial.shininess = 10.f;
 
   Material backWallMaterial;
   backWallMaterial.color = white;
-  backWallMaterial.ambient = vec3(0.5);
-  backWallMaterial.diffuse = vec3(0.44);
-  backWallMaterial.specular = vec3(0.06);
-  backWallMaterial.emission = vec3(0);
+  backWallMaterial.ambient = vec3(1);
+  backWallMaterial.diffuse = vec3(1);
+  backWallMaterial.specular = vec3(0.3);
   backWallMaterial.shininess = 10.f;
+
+  Material shortBlockMaterial;
+  shortBlockMaterial.color = cyan;
+  shortBlockMaterial.ambient = vec3(1);
+  shortBlockMaterial.diffuse = vec3(1);
+  shortBlockMaterial.specular = vec3(0.8);
+  shortBlockMaterial.shininess = 20.f;
+
+  Material tallBlockMaterial;
+  tallBlockMaterial.color = purple;
+  tallBlockMaterial.ambient = vec3(1);
+  tallBlockMaterial.diffuse = vec3(1);
 
   // ---------------------------------------------------------------------------
   // Sphere 1
   std::vector<Primitive *> sphere1Primitives;
-  
-  sphere1Primitives.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f, sphereMaterial));
+
+  sphere1Primitives.push_back(
+      new Sphere(vec4(-0.5, 0.5, -0.5, 1), 0.35f, sphere1Material));
   scene.push_back(new Object(sphere1Primitives));
 
   // ---------------------------------------------------------------------------
   // Sphere 2
   std::vector<Primitive *> sphere2Primitives;
-  sphere2Primitives.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, sphereMaterial));
+  sphere2Primitives.push_back(
+      new Sphere(vec4(0.3, 0.1, -0.4, 1), 0.3f, sphere2Material));
   scene.push_back(new Object(sphere2Primitives));
 
   // ---------------------------------------------------------------------------
@@ -116,16 +121,14 @@ void LoadTestModel(std::vector<Object *> &scene) {
   // Light
   std::vector<Primitive *> lightPrimitives;
 
-  lightPrimitives.push_back(
-      new Triangle(Vertex(vec4(3 * L / 5, 0.99 * L, 2 * L / 5, 1)),
-                   Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
-                   Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)),
-                   lightMaterial));
-  lightPrimitives.push_back(
-      new Triangle(Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
-                   Vertex(vec4(2 * L / 5, 0.99 * L, 3 * L / 5, 1)),
-                   Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)),
-                   lightMaterial));
+  lightPrimitives.push_back(new Triangle(
+      Vertex(vec4(3 * L / 5, 0.99 * L, 2 * L / 5, 1)),
+      Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
+      Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)), lightMaterial));
+  lightPrimitives.push_back(new Triangle(
+      Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
+      Vertex(vec4(2 * L / 5, 0.99 * L, 3 * L / 5, 1)),
+      Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)), lightMaterial));
   scene.push_back(new Object(lightPrimitives));
 
   // Floor:
@@ -181,25 +184,37 @@ void LoadTestModel(std::vector<Object *> &scene) {
   G = vec4(240, 165, 272, 1);
   H = vec4(82, 165, 225, 1);
 
-  // // Front
-  // primitives.push_back( Triangle(E,B,A,red) );
-  // primitives.push_back( Triangle(E,F,B,red) );
+  std::vector<Primitive *> shortBlockPrimitives;
+  // Front
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(E), Vertex(B), Vertex(A), shortBlockMaterial));
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(E), Vertex(F), Vertex(B), shortBlockMaterial));
 
-  // // Front
-  // primitives.push_back( Triangle(F,D,B,red) );
-  // primitives.push_back( Triangle(F,H,D,red) );
+  // Front
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(F), Vertex(D), Vertex(B), shortBlockMaterial));
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(F), Vertex(H), Vertex(D), shortBlockMaterial));
 
-  // // BACK
-  // primitives.push_back( Triangle(H,C,D,red) );
-  // primitives.push_back( Triangle(H,G,C,red) );
+  // BACK
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(H), Vertex(C), Vertex(D), shortBlockMaterial));
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(H), Vertex(G), Vertex(C), shortBlockMaterial));
 
-  // // LEFT
-  // primitives.push_back( Triangle(G,E,C,red) );
-  // primitives.push_back( Triangle(E,A,C,red) );
+  // LEFT
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(G), Vertex(E), Vertex(C), shortBlockMaterial));
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(E), Vertex(A), Vertex(C), shortBlockMaterial));
 
-  // // TOP
-  // primitives.push_back( Triangle(G,F,E,red) );
-  // primitives.push_back( Triangle(G,H,F,red) );
+  // TOP
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(G), Vertex(F), Vertex(E), shortBlockMaterial));
+  shortBlockPrimitives.push_back(
+      new Triangle(Vertex(G), Vertex(H), Vertex(F), shortBlockMaterial));
+  scene.push_back(new Object(shortBlockPrimitives));
 
   // ---------------------------------------------------------------------------
   // Tall block
@@ -214,25 +229,27 @@ void LoadTestModel(std::vector<Object *> &scene) {
   G = vec4(472, 330, 406, 1);
   H = vec4(314, 330, 456, 1);
 
-  // // Front
-  // primitives.push_back( Triangle(E,B,A,blue) );
-  // primitives.push_back( Triangle(E,F,B,blue) );
+  std::vector<Primitive *> tallBlockPrimitives;
+  // Front
+  tallBlockPrimitives.push_back(new Triangle(E, B, A, tallBlockMaterial));
+  tallBlockPrimitives.push_back(new Triangle(E, F, B, tallBlockMaterial));
 
-  // // Front
-  // primitives.push_back( Triangle(F,D,B,blue) );
-  // primitives.push_back( Triangle(F,H,D,blue) );
+  // Front
+  tallBlockPrimitives.push_back(new Triangle(F, D, B, tallBlockMaterial));
+  tallBlockPrimitives.push_back(new Triangle(F, H, D, tallBlockMaterial));
 
-  // // BACK
-  // primitives.push_back( Triangle(H,C,D,blue) );
-  // primitives.push_back( Triangle(H,G,C,blue) );
+  // BACK
+  tallBlockPrimitives.push_back(new Triangle(H, C, D, tallBlockMaterial));
+  tallBlockPrimitives.push_back(new Triangle(H, G, C, tallBlockMaterial));
 
-  // // LEFT
-  // primitives.push_back( Triangle(G,E,C,blue) );
-  // primitives.push_back( Triangle(E,A,C,blue) );
+  // LEFT
+  tallBlockPrimitives.push_back(new Triangle(G, E, C, tallBlockMaterial));
+  tallBlockPrimitives.push_back(new Triangle(E, A, C, tallBlockMaterial));
 
-  // // TOP
-  // primitives.push_back( Triangle(G,F,E,blue) );
-  // primitives.push_back( Triangle(G,H,F,blue) );
+  // TOP
+  tallBlockPrimitives.push_back(new Triangle(G, F, E, tallBlockMaterial));
+  tallBlockPrimitives.push_back(new Triangle(G, H, F, tallBlockMaterial));
+  scene.push_back(new Object(tallBlockPrimitives));
 
   // ----------------------------------------------
   // Scale to the volume [-1,1]^3

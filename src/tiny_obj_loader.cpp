@@ -1957,7 +1957,7 @@ bool LoadObjWithCallback(std::istream &inStream, const callback_t &callback,
   return true;
 }
 
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+// #ifdef __clang__
+// #pragma clang diagnostic pop
+// #endif
 }  // namespace tinyobj
