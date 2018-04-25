@@ -2,6 +2,6 @@
 build/
 bin/
 dependencies/
-screenshot.bmp
+screenshot.png
 .idea
 cmake-build-debug/

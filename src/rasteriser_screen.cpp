@@ -1,32 +1,15 @@
 #include "rasteriser_screen.h"
 
-#include "SDL.h"
-
 #include <glm/glm.hpp>
 #include <iostream>
+#include "SDL.h"
+
+using namespace cv;
 
 void SDL_SaveImage(screen* s, const char* filename) {
-  uint32_t rmask, gmask, bmask, amask;
-
-  if (SDL_BYTEORDER == SDL_BIG_ENDIAN) {
-    amask = 0xff << 0;
-    rmask = 0xff << 8;
-    gmask = 0xff << 16;
-    bmask = 0xff << 24;
-  } else {
-    amask = 0xff << 24;
-    rmask = 0xff << 16;
-    gmask = 0xff << 8;
-    bmask = 0xff << 0;
-  }
-
-  SDL_Surface* surf = SDL_CreateRGBSurfaceFrom(
-      (void*)s->buffer, s->width, s->height, 32, s->width * sizeof(uint32_t),
-      rmask, gmask, bmask, amask);
-  if (SDL_SaveBMP(surf, filename) != 0) {
-    std::cout << "Failed to save image: " << SDL_GetError() << std::endl;
-    exit(1);
-  }
+  Mat mat = cvUnpackToMat(s);
+  imwrite("screenshot.png", mat);
+  exit(0);
 }
 
 void KillSDL(screen* s) {
@@ -116,5 +99,39 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, float depth) {
   if (depth > s->depthBuffer[y * s->width + x]) {
     s->depthBuffer[y * s->width + x] = depth;
     s->buffer[y * s->width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
+  }
+}
+
+Mat cvUnpackToMat(screen* s) {
+  Mat mat(s->height, s->width, CV_8UC3, Scalar(0, 0, 0));
+  for (uint32_t y = 0; y < s->height; ++y) {
+    for (uint32_t x = 0; x < s->width; ++x) {
+      uint32_t pixel = s->buffer[y * s->width + x];
+      uint32_t mask = 0xFF;
+      uint32_t b = mask & pixel;
+      uint32_t g = mask & (pixel >> 8);
+      uint32_t r = mask & (pixel >> 16);
+
+      Vec3b color = mat.at<Vec3b>(Point(x, y));
+      color[0] = b;
+      color[1] = g;
+      color[2] = r;
+      mat.at<Vec3b>(Point(x, y)) = color;
+    }
+  }
+  return mat;
+}
+
+void cvPackToScreen(screen* s, Mat mat) {
+  for (uint32_t y = 0; y < s->height; ++y) {
+    for (uint32_t x = 0; x < s->width; ++x) {
+      Vec3b color = mat.at<Vec3b>(Point(x, y));
+
+      uint32_t r = uint32_t(glm::clamp((float) color[2], 0.f, 255.f));
+      uint32_t g = uint32_t(glm::clamp((float) color[1], 0.f, 255.f));
+      uint32_t b = uint32_t(glm::clamp((float) color[0], 0.f, 255.f));
+
+      s->buffer[y * s->width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
+    }
   }
 }

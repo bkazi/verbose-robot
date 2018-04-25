@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include "SDL.h"
+#include <opencv/cv.hpp>
 
 typedef struct {
   SDL_Window *window;
@@ -20,4 +21,6 @@ void PutPixelSDL( screen *s, int x, int y, glm::vec3 color, float depth);
 void SDL_Renderframe(screen *s);
 void KillSDL(screen* s);
 void SDL_SaveImage(screen *s, const char* filename);
+cv::Mat cvUnpackToMat(screen *s);
+void cvPackToScreen(screen *screen, cv::Mat mat);
 #endif
