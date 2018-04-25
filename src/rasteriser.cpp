@@ -12,6 +12,7 @@
 #include "scene.h"
 #include "util.h"
 #include "camera.h"
+#include "post_processing.h"
 
 using namespace cv;
 using namespace std;
@@ -46,6 +47,7 @@ void DrawRows(const vector<Pixel> &leftPixels,
 void DrawPolygon(screen *screen, const vector<Vertex> &vertices, Camera *camera);
 void ClipPolygon(vector<Pixel> &vertexPixels, int height, int width);
 void DrawShadowMap(Light &light);
+void FXAA(screen *s);
 
 Scene *scene;
 Light light;
@@ -98,6 +100,7 @@ int main(int argc, char *argv[]) {
     //     + x]), 100.f);
     //   }
     // }
+    FXAA(screen);
     SDL_Renderframe(screen);
   }
 
@@ -437,4 +440,18 @@ void DrawShadowMap(Light &light) {
     }
   }
   light.needsUpdate = false;
+}
+
+void FXAA(screen *s) {
+  Mat frameBuffer = cvUnpackToMat(s);
+  Mat depthBuffer = cvUnpackDepthBuffer(s);
+  findEdges(depthBuffer);
+  double min, max;
+  minMaxLoc(depthBuffer, &min, &max);
+  depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0/(max-min), -255.0*min/(max-min));
+  Mat blurredImage;
+
+  GaussianBlur(frameBuffer, blurredImage, Size(3, 3), 0, 0);
+  maskImage(frameBuffer, blurredImage, depthBuffer, frameBuffer);
+  cvPackToScreen(s, frameBuffer);
 }
