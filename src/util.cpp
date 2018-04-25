@@ -17,10 +17,6 @@ using glm::mat4;
   Pixel::Pixel(ivec2 vec): x(vec.x), y(vec.y) {};
   Pixel::Pixel(ivec2 vec, float zinv, vec4 homogenous, vec4 worldPos, vec4 normal, vec3 reflectance): x(vec.x), y(vec.y), zinv(zinv), homogenous(homogenous), worldPos(worldPos), normal(normal), reflectance(reflectance) {};
 
-  Vertex::Vertex() {};
-  Vertex::Vertex(vec4 position): position(position) {};
-  Vertex::Vertex(vec4 position, vec4 normal, vec3 reflectance): position(position), normal(normal), reflectance(reflectance) {};
-
 mat4 CalcRotationMatrix(vec3 rotation) {
   float x = rotation.x;
   float y = rotation.y;

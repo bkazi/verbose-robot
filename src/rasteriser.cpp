@@ -4,14 +4,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <opencv/cv.hpp>
-// #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <SDL.h>
 
+#include "camera.h"
 #include "light.h"
 #include "rasteriser_screen.h"
 #include "scene.h"
 #include "util.h"
-#include "camera.h"
 
 using namespace cv;
 using namespace std;
@@ -43,7 +43,8 @@ void ComputePolygonRows(const vector<Pixel> &vertexPixels,
                         vector<Pixel> &leftPixels, vector<Pixel> &rightPixels);
 void DrawRows(const vector<Pixel> &leftPixels,
               const vector<Pixel> &rightPixels);
-void DrawPolygon(screen *screen, const vector<Vertex> &vertices, Camera *camera);
+void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
+                 Camera *camera);
 void ClipPolygon(vector<Pixel> &vertexPixels, int height, int width);
 void DrawShadowMap(Light &light);
 
@@ -66,14 +67,8 @@ int main(int argc, char *argv[]) {
   //     0.001,
   //     0.001,
   // };
-  Camera *camera = new Camera(
-    vec4(0, 0, -1.5001, 1),
-    vec3(0, 0, 0),
-    SCREEN_HEIGHT,
-    0.001,
-    0.001
-  );
-  
+  Camera *camera = new Camera(vec4(0, 0, -1.5001, 1), vec3(0, 0, 0),
+                              SCREEN_HEIGHT, 0.001, 0.001);
 
   light.position = lightPos;
   light.power = lightPower;
@@ -119,10 +114,12 @@ void Draw(screen *screen, Camera *camera) {
     for (uint32_t j = 0; j < scene->objects[i]->primitives.size(); ++j) {
       Triangle *tri;
       if ((tri = dynamic_cast<Triangle *>(scene->objects[i]->primitives[j]))) {
-        vector<Vertex> vertices(
-            {Vertex(tri->v0, tri->getNormal(), tri->color),
-             Vertex(tri->v1, tri->getNormal(), tri->color),
-             Vertex(tri->v2, tri->getNormal(), tri->color)});
+        vector<Vertex> vertices({
+            // Remake vertices to use primitive material color instead of vertex color
+            Vertex(tri->v0.position, tri->v0.normal, tri->v0.uv, tri->material.color),
+            Vertex(tri->v1.position, tri->v1.normal, tri->v1.uv, tri->material.color),
+            Vertex(tri->v2.position, tri->v2.normal, tri->v2.uv, tri->material.color),
+        });
 
         DrawPolygon(screen, vertices, camera);
       }
@@ -149,13 +146,13 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
   p.zinv = 1.f / (transMat * v.position).z;
   p.worldPos = v.position;
   p.normal = glm::normalize(transMat * v.normal);
-  p.reflectance = v.reflectance;
+  p.reflectance = v.color;
 }
 
 void PixelShader(screen *screen, const Pixel &p, Camera *camera) {
   vec3 D;
   if (light.test(p.worldPos)) {
-    mat4 transMat =camera->getTransformationMatrix();
+    mat4 transMat = camera->getTransformationMatrix();
     // TransformationMatrix(camera->rotation, camera->position, transMat);
     vec4 r = transMat * (light.position - p.worldPos);
     float rLen = glm::length(r);
@@ -428,7 +425,8 @@ void DrawShadowMap(Light &light) {
     s.depthBuffer = new float[LIGHTMAP_SIZE * LIGHTMAP_SIZE];
 
     for (int idx = 0; idx < 6; idx++) {
-      Camera *camera = new Camera(lightPos, light.rot[idx], LIGHTMAP_SIZE, 0, 0);
+      Camera *camera =
+          new Camera(lightPos, light.rot[idx], LIGHTMAP_SIZE, 0, 0);
 
       Draw(&s, camera);
 

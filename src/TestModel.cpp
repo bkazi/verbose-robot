@@ -20,18 +20,82 @@ void LoadTestModel(std::vector<Object *> &scene) {
   vec3 purple(0.75f, 0.15f, 0.75f);
   vec3 white(0.75f, 0.75f, 0.75f);
 
+  // Define materials
+
+  Material sphereMaterial;
+  sphereMaterial.color = cyan;
+  sphereMaterial.ambient = vec3(0.5);
+  sphereMaterial.diffuse = vec3(0.46);
+  sphereMaterial.specular = vec3(0.04);
+  sphereMaterial.emission = vec3(0);
+  sphereMaterial.shininess = 2.f;
+
+  Material lightMaterial;
+  lightMaterial.color = vec3(0);
+  lightMaterial.ambient = vec3(0.1);
+  lightMaterial.diffuse = vec3(0.8);
+  lightMaterial.specular = vec3(0.1);
+  lightMaterial.emission = 50.f * vec3(1);
+  lightMaterial.shininess = 1.f;
+
+//   emit
+//   color
+//   shininess
+//   a
+//   s
+//   d
+
+  Material floorMaterial;
+  floorMaterial.color = white;
+  floorMaterial.ambient = vec3(0.5);
+  floorMaterial.diffuse = vec3(0.44);
+  floorMaterial.specular = vec3(0.06);
+  floorMaterial.emission = vec3(0);
+  floorMaterial.shininess = 10.f;
+
+  Material leftWallMaterial;
+  leftWallMaterial.color = red;
+  leftWallMaterial.ambient = vec3(0.5);
+  leftWallMaterial.diffuse = vec3(0.46);
+  leftWallMaterial.specular = vec3(0.04);
+  leftWallMaterial.emission = vec3(0);
+  leftWallMaterial.shininess = 2.f;
+
+  Material rightWallMaterial;
+  rightWallMaterial.color = green;
+  rightWallMaterial.ambient = vec3(0.5);
+  rightWallMaterial.diffuse = vec3(0.46);
+  rightWallMaterial.specular = vec3(0.04);
+  rightWallMaterial.emission = vec3(0);
+  rightWallMaterial.shininess = 2.f;
+
+  Material ceilingMaterial;
+  ceilingMaterial.color = white;
+  ceilingMaterial.ambient = vec3(0.5);
+  ceilingMaterial.diffuse = vec3(0.04);
+  ceilingMaterial.specular = vec3(0.46);
+  ceilingMaterial.emission = vec3(0);
+  ceilingMaterial.shininess = 10.f;
+
+  Material backWallMaterial;
+  backWallMaterial.color = white;
+  backWallMaterial.ambient = vec3(0.5);
+  backWallMaterial.diffuse = vec3(0.44);
+  backWallMaterial.specular = vec3(0.06);
+  backWallMaterial.emission = vec3(0);
+  backWallMaterial.shininess = 10.f;
+
   // ---------------------------------------------------------------------------
   // Sphere 1
   std::vector<Primitive *> sphere1Primitives;
-  sphere1Primitives.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f,
-                                         vec3(0), cyan, 2, 0.5, 0.04, 0.46));
+  
+  sphere1Primitives.push_back(new Sphere(vec4(-0.45, 0.6, 0.4, 1), 0.4f, sphereMaterial));
   scene.push_back(new Object(sphere1Primitives));
 
   // ---------------------------------------------------------------------------
   // Sphere 2
   std::vector<Primitive *> sphere2Primitives;
-  sphere2Primitives.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, vec3(0),
-                                         cyan, 2, 0.5, 0.04, 0.46));
+  sphere2Primitives.push_back(new Sphere(vec4(0.6, 0.6, -0.4, 1), 0.3f, sphereMaterial));
   scene.push_back(new Object(sphere2Primitives));
 
   // ---------------------------------------------------------------------------
@@ -51,56 +115,57 @@ void LoadTestModel(std::vector<Object *> &scene) {
 
   // Light
   std::vector<Primitive *> lightPrimitives;
+
   lightPrimitives.push_back(
-      new Triangle(vec4(3 * L / 5, 0.99 * L, 2 * L / 5, 1),
-                   vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1),
-                   vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1), 50.0f * vec3(1),
-                   vec3(0), 1, 0.1, 0.1, 0.8));
+      new Triangle(Vertex(vec4(3 * L / 5, 0.99 * L, 2 * L / 5, 1)),
+                   Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
+                   Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)),
+                   lightMaterial));
   lightPrimitives.push_back(
-      new Triangle(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1),
-                   vec4(2 * L / 5, 0.99 * L, 3 * L / 5, 1),
-                   vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1), 50.0f * vec3(1),
-                   vec3(0), 1, 0.1, 0.1, 0.8));
+      new Triangle(Vertex(vec4(2 * L / 5, 0.99 * L, 2 * L / 5, 1)),
+                   Vertex(vec4(2 * L / 5, 0.99 * L, 3 * L / 5, 1)),
+                   Vertex(vec4(3 * L / 5, 0.99 * L, 3 * L / 5, 1)),
+                   lightMaterial));
   scene.push_back(new Object(lightPrimitives));
 
   // Floor:
   std::vector<Primitive *> floorPrimitives;
   floorPrimitives.push_back(
-      new Triangle(C, B, A, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(Vertex(C), Vertex(B), Vertex(A), floorMaterial));
   floorPrimitives.push_back(
-      new Triangle(C, D, B, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(Vertex(C), Vertex(D), Vertex(B), floorMaterial));
   scene.push_back(new Object(floorPrimitives));
 
   // Left wall
   std::vector<Primitive *> leftWallPrimitives;
   leftWallPrimitives.push_back(
-      new Triangle(A, E, C, vec3(0), red, 2, 0.5, 0.04, 0.46));
+      new Triangle(Vertex(A), Vertex(E), Vertex(C), leftWallMaterial));
   leftWallPrimitives.push_back(
-      new Triangle(C, E, G, vec3(0), red, 2, 0.5, 0.04, 0.46));
+      new Triangle(Vertex(C), Vertex(E), Vertex(G), leftWallMaterial));
   scene.push_back(new Object(leftWallPrimitives));
 
   // Right wall
   std::vector<Primitive *> rightWallPrimitives;
   rightWallPrimitives.push_back(
-      new Triangle(F, B, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
+      new Triangle(Vertex(F), Vertex(B), Vertex(D), rightWallMaterial));
   rightWallPrimitives.push_back(
-      new Triangle(H, F, D, vec3(0), green, 2, 0.5, 0.04, 0.46));
+      new Triangle(Vertex(H), Vertex(F), Vertex(D), rightWallMaterial));
   scene.push_back(new Object(rightWallPrimitives));
 
   // Ceiling
   std::vector<Primitive *> ceilingPrimitives;
   ceilingPrimitives.push_back(
-      new Triangle(E, F, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
+      new Triangle(Vertex(E), Vertex(F), Vertex(G), ceilingMaterial));
   ceilingPrimitives.push_back(
-      new Triangle(F, H, G, vec3(0), white, 10, 0.5, 0.46, 0.04));
+      new Triangle(Vertex(F), Vertex(H), Vertex(G), ceilingMaterial));
   scene.push_back(new Object(ceilingPrimitives));
 
   // Back wall
   std::vector<Primitive *> backWallPrimitives;
   backWallPrimitives.push_back(
-      new Triangle(G, D, C, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(Vertex(G), Vertex(D), Vertex(C), backWallMaterial));
   backWallPrimitives.push_back(
-      new Triangle(G, H, D, vec3(0), white, 10, 0.5, 0.06, 0.44));
+      new Triangle(Vertex(G), Vertex(H), Vertex(D), backWallMaterial));
   scene.push_back(new Object(backWallPrimitives));
 
   // ---------------------------------------------------------------------------
@@ -176,25 +241,25 @@ void LoadTestModel(std::vector<Object *> &scene) {
     for (size_t j = 0; j < scene[i]->primitives.size(); j++) {
       Triangle *tri;
       if ((tri = dynamic_cast<Triangle *>(scene[i]->primitives[j]))) {
-        tri->v0 *= 2 / L;
-        tri->v1 *= 2 / L;
-        tri->v2 *= 2 / L;
+        tri->v0.position *= 2 / L;
+        tri->v1.position *= 2 / L;
+        tri->v2.position *= 2 / L;
 
-        tri->v0 -= vec4(1, 1, 1, 1);
-        tri->v1 -= vec4(1, 1, 1, 1);
-        tri->v2 -= vec4(1, 1, 1, 1);
+        tri->v0.position -= vec4(1, 1, 1, 1);
+        tri->v1.position -= vec4(1, 1, 1, 1);
+        tri->v2.position -= vec4(1, 1, 1, 1);
 
-        tri->v0.x *= -1;
-        tri->v1.x *= -1;
-        tri->v2.x *= -1;
+        tri->v0.position.x *= -1;
+        tri->v1.position.x *= -1;
+        tri->v2.position.x *= -1;
 
-        tri->v0.y *= -1;
-        tri->v1.y *= -1;
-        tri->v2.y *= -1;
+        tri->v0.position.y *= -1;
+        tri->v1.position.y *= -1;
+        tri->v2.position.y *= -1;
 
-        tri->v0.w = 1.0;
-        tri->v1.w = 1.0;
-        tri->v2.w = 1.0;
+        tri->v0.position.w = 1.0;
+        tri->v1.position.w = 1.0;
+        tri->v2.position.w = 1.0;
 
         tri->ComputeNormal();
       }

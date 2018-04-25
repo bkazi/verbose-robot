@@ -1,10 +1,3 @@
-#include <iostream>
-#include <cstdlib>
-#include <random> 
-#include <ctime>
-#include <cstdint>
-#include <climits>
-#include <cmath>
 #include <SDL.h>
 #include <limits.h>
 #include <math.h>
@@ -12,15 +5,21 @@
 #include <stdlib.h>
 #include <time.h>
 #include <algorithm>
+#include <climits>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <ctime>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <random>
-#include "raytracer_screen.h"
+#include <random>
 #include "TestModel.h"
-#include "scene.h"
-#include "objects.h"
 #include "camera.h"
+#include "objects.h"
+#include "raytracer_screen.h"
+#include "scene.h"
 
 using namespace std;
 using glm::mat3;
@@ -46,11 +45,12 @@ vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
 float apertureSize = 0.1;
 
 /* ----------------------------------------------------------------------------*/
-/* FUNCTIONS                                                                   */
+/* FUNCTIONS */
 
 void Update(screen *screen);
 void Draw(screen *screen);
-bool ClosestIntersection(vec4 start, vec4 dir, Intersection &closestIntersection);
+bool ClosestIntersection(vec4 start, vec4 dir,
+                         Intersection &closestIntersection);
 vec3 DirectLight(const Intersection &intersection, vec4 dir, bool spec);
 vec3 IndirectLight(const Intersection &intersection, vec4 dir, int bounce,
                    bool spec);
@@ -77,14 +77,9 @@ int main(int argc, char *argv[]) {
 
   // scene->createBVH();
 
-  camera = new Camera(
-    vec4(0, 0, -3.001, 1),
-    vec3(0, 0, 0),
-    SCREEN_HEIGHT,
-    0.001,
-    0.001
-  );
-  
+  camera = new Camera(vec4(0, 0, -3.001, 1), vec3(0, 0, 0), SCREEN_HEIGHT,
+                      0.001, 0.001);
+
   srand(42);
   memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 #ifdef LIVE
@@ -116,12 +111,16 @@ void Draw(screen *screen) {
     for (x = -SCREEN_WIDTH / 2; x < SCREEN_WIDTH / 2; x++) {
       vec3 color = vec3(0);
 #if NUM_RAYS <= 1
-      vec4 direction = glm::normalize(vec4(x, y, camera->focalLength, 1) * camera->getRotationMatrix());
+      vec4 direction = glm::normalize(vec4(x, y, camera->focalLength, 1) *
+                                      camera->getRotationMatrix());
       color += Light(camera->position, direction);
 #else
-      for (int i = -NUM_RAYS/2; i < NUM_RAYS/2; i++) {
-        for (int j = -NUM_RAYS/2; j < NUM_RAYS/2; j++) {
-          vec4 direction = glm::normalize(vec4((float) x + (apertureSize * i), (float) y + (apertureSize * j), camera->focalLength, 1) * camera->getRotationMatrix());
+      for (int i = -NUM_RAYS / 2; i < NUM_RAYS / 2; i++) {
+        for (int j = -NUM_RAYS / 2; j < NUM_RAYS / 2; j++) {
+          vec4 direction = glm::normalize(vec4((float)x + (apertureSize * i),
+                                               (float)y + (apertureSize * j),
+                                               camera->focalLength, 1) *
+                                          camera->getRotationMatrix());
           color += Light(camera->position, direction);
         }
       }
@@ -144,7 +143,8 @@ void Update(screen *screen) {
   /* Update variables*/
 
   if (camera->update(dt)) {
-    memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
+    memset(screen->buffer, 0,
+           screen->height * screen->width * sizeof(uint32_t));
     memset(screen->pixels, 0, screen->height * screen->width * sizeof(vec3));
     samples = 0;
   }
@@ -159,7 +159,8 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
     if (bounce > MIN_BOUNCES &&
-        (bounce > MAX_BOUNCES || U > max3(intersection.primitive->color))) {
+        (bounce > MAX_BOUNCES ||
+         U > max3(intersection.primitive->material.color))) {
       // terminate
       return vec3(0);
     }
@@ -179,15 +180,16 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
           vec4 lightDir = lightVec / lightDist;
           Intersection lightIntersection;
           if (scene->intersect(new Ray(hitPos + lightDir * 1e-4f, lightDir),
-                                  lightIntersection)) {
+                               lightIntersection)) {
             if (light == lightIntersection.primitive) {
               vec4 reflected = glm::reflect(lightDir, normal);
               directSpecularLight +=
-                  light->emit *
-                  max(powf(glm::dot(reflected, dir), intersection.primitive->shininess),
+                  light->material.emission *
+                  max(powf(glm::dot(reflected, dir),
+                           intersection.primitive->material.shininess),
                       0.0f) /
                   (float)(4 * M_PI * powf(lightDist, 2));
-              directDiffuseLight += light->emit *
+              directDiffuseLight += light->material.emission *
                                     max(glm::dot(lightDir, normal), 0.0f) /
                                     (float)(4 * M_PI * powf(lightDist, 2));
             }
@@ -205,16 +207,21 @@ vec3 Light(const vec4 start, const vec4 dir, int bounce) {
     vec3 sample = uniformSampleHemisphere(r1, r2);
     vec3 sampleWorld = vec3(mat3(Nb, vec3(normal), Nt) * sample);
     vec4 rayDir = vec4(sampleWorld, 1);
-    indirectLight += intersection.primitive->Kd * Light(hitPos, rayDir, bounce + 1);
+    indirectLight += intersection.primitive->material.diffuse *
+                     Light(hitPos, rayDir, bounce + 1);
 
     if (bounce == 0) {
-      return intersection.primitive->emit +
-             intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
-                                 intersection.primitive->Ka * indirectLight +
-                                 intersection.primitive->Ks * directSpecularLight);
+      return intersection.primitive->material.emission +
+             intersection.primitive->material.color *
+                 (intersection.primitive->material.diffuse *
+                      directDiffuseLight +
+                  intersection.primitive->material.ambient * indirectLight +
+                  intersection.primitive->material.specular *
+                      directSpecularLight);
     } else {
-      return intersection.primitive->color * (intersection.primitive->Kd * directDiffuseLight +
-                                 intersection.primitive->Ka * indirectLight);
+      return intersection.primitive->material.color *
+             (intersection.primitive->material.diffuse * directDiffuseLight +
+              intersection.primitive->material.ambient * indirectLight);
     }
   }
   return vec3(0);
