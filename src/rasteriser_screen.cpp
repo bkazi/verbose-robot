@@ -103,6 +103,7 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, float depth) {
 }
 
 Mat cvUnpackToMat(screen* s) {
+  #pragma omp parallel for collapse(2)
   Mat mat(s->height, s->width, CV_8UC3, Scalar(0, 0, 0));
   for (uint32_t y = 0; y < s->height; ++y) {
     for (uint32_t x = 0; x < s->width; ++x) {
@@ -123,6 +124,7 @@ Mat cvUnpackToMat(screen* s) {
 }
 
 void cvPackToScreen(screen* s, Mat mat) {
+  #pragma omp parallel for collapse(2)
   for (uint32_t y = 0; y < s->height; ++y) {
     for (uint32_t x = 0; x < s->width; ++x) {
       Vec3b color = mat.at<Vec3b>(Point(x, y));
