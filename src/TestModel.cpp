@@ -76,14 +76,14 @@ void LoadTestModel(std::vector<Object *> &scene) {
   backWallMaterial.shininess = 10.f;
 
   Material shortBlockMaterial;
-  shortBlockMaterial.color = purple;
+  shortBlockMaterial.color = cyan;
   shortBlockMaterial.ambient = vec3(1);
   shortBlockMaterial.diffuse = vec3(1);
   shortBlockMaterial.specular = vec3(0.3);
   shortBlockMaterial.shininess = 5.f;
 
   Material tallBlockMaterial;
-  tallBlockMaterial.color = cyan;
+  tallBlockMaterial.color = purple;
   tallBlockMaterial.ambient = vec3(1);
   tallBlockMaterial.diffuse = vec3(1);
 
