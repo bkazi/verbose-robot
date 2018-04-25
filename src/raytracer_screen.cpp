@@ -36,6 +36,7 @@ void KillSDL(screen* s) {
 }
 
 void SDL_Renderframe(screen* s) {
+  #pragma omp parallel for collapse(2) 
   for (int y = 0; y < s->height; y++) {
     for (int x = 0; x < s->width; x++) {
       glm::vec3 colour = s->pixels[y*s->width+x] / (float) s->samples;

@@ -2,16 +2,18 @@
 #define OBJECTS_H
 
 #include <glm/glm.hpp>
+#include <map>
+#include <opencv/cv.hpp>
 #include <string>
 #include <vector>
 
-struct Primitive; // Forward declare to fix problems
+struct Primitive;  // Forward declare to fix problems
 
 struct Ray {
-public:
-    glm::vec4 position;
-    glm::vec4 direction;
-    Ray(glm::vec4 position, glm::vec4 direction);
+ public:
+  glm::vec4 position;
+  glm::vec4 direction;
+  Ray(glm::vec4 position, glm::vec4 direction);
 };
 
 struct Intersection {
@@ -20,17 +22,63 @@ struct Intersection {
   Primitive *primitive;
 };
 
-struct Primitive {
-public:
-  glm::vec3 emit;
-  glm::vec3 color;
-  float shininess;
-  float Ka;
-  float Ks;
-  float Kd;
+struct Texture {
+  static Texture *createTexture(std::string);
+  cv::Mat image;
+  Texture(cv::Mat image);
+  static std::map<std::string, Texture *> textures;
+};
 
-  Primitive(glm::vec3 emit, glm::vec3 color, float shininess, float Ka, float Ks,
-        float Kd);
+struct Material {
+  Material()
+      : color(glm::vec3(0)),
+        ambient(glm::vec3(0)),
+        diffuse(glm::vec3(0)),
+        specular(glm::vec3(0)),
+        transmittance(glm::vec3(0)),
+        emission(glm::vec3(0)),
+        shininess(1.f),
+        refractiveIndex(1.f),
+        dissolve(0.f) {}
+  glm::vec3 color;
+  glm::vec3 ambient;
+  glm::vec3 diffuse;
+  glm::vec3 specular;
+  glm::vec3 transmittance;
+  glm::vec3 emission;
+  float shininess;
+  float refractiveIndex;
+  float dissolve;
+};
+
+struct TexturedMaterial : Material {
+  Texture *ambientTexture;
+  Texture *diffuseTexture;
+  Texture *specularTexture;
+  Texture *specularHighlightTexture;
+  Texture *bumpTexture;
+  Texture *displacementTexture;
+  Texture *alphaTexture;
+  Texture *reflectionTexture;
+};
+
+struct Vertex {
+  glm::vec4 position;
+  glm::vec4 normal;
+  glm::vec2 uv;
+  glm::vec3 color;
+
+  Vertex();
+  Vertex(glm::vec4 position);
+  Vertex(glm::vec4 position, glm::vec4 normal, glm::vec2 uv, glm::vec3 color);
+  Vertex(glm::vec4 position, glm::vec4 normal, glm::vec3 color);
+};
+
+struct Primitive {
+ public:
+  Material material;
+
+  Primitive(Material material);
   virtual float intersect(Ray *ray);
   virtual glm::vec4 randomPoint();
   virtual glm::vec4 getNormal(const glm::vec4 &p);
@@ -46,21 +94,16 @@ struct Object {
 
 class Triangle : public Primitive {
  public:
-  glm::vec4 v0;
-  glm::vec4 v1;
-  glm::vec4 v2;
+  Vertex v0;
+  Vertex v1;
+  Vertex v2;
   glm::vec3 e1;
   glm::vec3 e2;
 
-  Triangle(glm::vec4 v0, glm::vec4 v1, glm::vec4 v2, glm::vec3 emit,
-           glm::vec3 color, float shininess, float Ka, float Ks, float Kd);
-
+  Triangle(Vertex v0, Vertex v1, Vertex v2, Material material);
   glm::vec4 getNormal(const glm::vec4 &p = glm::vec4(0)) override;
-
   glm::vec4 randomPoint() override;
-
   float intersect(Ray *ray) override;
-
   void ComputeNormal();
 
  private:
@@ -72,11 +115,8 @@ class Sphere : public Primitive {
   glm::vec4 c;
   float radius;
 
-  Sphere(glm::vec4 c, float radius, glm::vec3 emit, glm::vec3 color,
-         float shininess, float Ka, float Ks, float Kd);
-
+  Sphere(glm::vec4 c, float radius, Material material);
   glm::vec4 getNormal(const glm::vec4 &p) override;
-
   float intersect(Ray *ray) override;
 };
 

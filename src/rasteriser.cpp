@@ -123,9 +123,9 @@ void Draw(screen *screen, Camera *camera) {
       Triangle *tri;
       if ((tri = dynamic_cast<Triangle *>(scene->objects[i]->primitives[j]))) {
         vector<Vertex> vertices(
-            {Vertex(tri->v0, tri->getNormal(), tri->color),
-             Vertex(tri->v1, tri->getNormal(), tri->color),
-             Vertex(tri->v2, tri->getNormal(), tri->color)});
+            {Vertex(tri->v0.position, tri->v0.normal, tri->material.color),
+             Vertex(tri->v1.position, tri->v1.normal, tri->material.color),
+             Vertex(tri->v2.position, tri->v2.normal, tri->material.color)});
 
         DrawPolygon(screen, vertices, camera);
       }
@@ -152,7 +152,7 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
   p.zinv = 1.f / (transMat * v.position).z;
   p.worldPos = v.position;
   p.normal = glm::normalize(transMat * v.normal);
-  p.reflectance = v.reflectance;
+  p.reflectance = v.color;
 }
 
 void PixelShader(screen *screen, const Pixel &p, Camera *camera) {
