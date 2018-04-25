@@ -30,12 +30,12 @@ using glm::vec3;
 using glm::vec4;
 using glm::ivec2;
 
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
+#define SCREEN_WIDTH 480
+#define SCREEN_HEIGHT 480
 #define FULLSCREEN_MODE false
-#define MIN_BOUNCES 5
-#define MAX_BOUNCES 10
-// #define AA
+#define MIN_BOUNCES 10
+#define MAX_BOUNCES 20
+#define AA
 #define LIVE
 
 float m = numeric_limits<float>::max();
@@ -55,6 +55,7 @@ vec3 uniformSampleHemisphere(const float &r1, const float &r2);
 vec3 sampleConeBase(float b);
 void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb);
 vec3 Light(const vec4 start, const vec4 dir, float currIor = 1.f, int bounce = 0);
+void fresnel(vec4 I, vec4 N, float ior, float &kr);
 float max3(vec3);
 void LoadModel(vector<Object *> &scene, const char *path);
 
@@ -205,13 +206,23 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
     vec3 indirectLight = vec3(0);
     float prob = intersection.primitive->Kd / (intersection.primitive->Kd + intersection.primitive->Ks);
     if (intersection.primitive->glass) {
-      bool isInside = currIor != 1.f;
+      vec3 refractionColor;
+      float kr;
+      fresnel(dir, normal, intersection.primitive->ior, kr);
+      bool isInside = glm::dot(dir, normal) > 0;
+      vec4 bias = 1e-4f * normal;
       float eta = !isInside ? 1.f/intersection.primitive->ior : intersection.primitive->ior;
       float newIor = isInside ? 1.f : intersection.primitive->ior;
-      vec4 reflected = glm::reflect(dir, normal);
-      vec4 refracted = glm::refract(dir, normal, eta);
-      indirectLight += 0.1f * Light(hitPos, reflected, newIor, bounce + 1);
-      indirectLight += 0.9f * Light(hitPos, refracted, newIor, bounce + 1);
+      normal = isInside ? -normal : normal;
+      if (kr < 1) {
+        vec4 refracted = glm::normalize(glm::refract(dir, normal, eta));
+        vec4 start = isInside ? hitPos + bias : hitPos - bias;
+        refractionColor = Light(start, refracted, newIor, bounce + 1);
+      }
+      vec4 reflected = glm::normalize(glm::reflect(dir, normal));
+      vec4 start = isInside ? hitPos + bias : hitPos - bias;
+      vec3 reflectionColor = Light(start, reflected, newIor, bounce + 1);
+      indirectLight += kr * reflectionColor + (1 - kr) * refractionColor;
     } else if ((rand() / (float) RAND_MAX) < prob) {
       // diffuse
       vec3 Nt, Nb;
@@ -233,7 +244,7 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
       indirectLight += Light(hitPos, rayDir, intersection.primitive->ior, bounce + 1);
     }
     indirectLight = glm::clamp(
-      indirectLight, vec3(0), vec3(2)
+      indirectLight, vec3(0), vec3(10)
     );
 
     return intersection.primitive->emit +
@@ -264,6 +275,28 @@ vec3 sampleConeBase(float b) {
   float r = b * sqrt(rand() / (float) RAND_MAX);
   float t = 2 * M_PI * (rand() / (float) RAND_MAX);
   return vec3(r * cos(t), 1, r * sin(t));
+}
+
+void fresnel(vec4 I, vec4 N, float ior, float &kr) {
+    float cosi = glm::clamp(glm::dot(I, N), -1.f, 1.f); 
+    float etai = 1, etat = ior; 
+    if (cosi > 0) {
+      swap(etai, etat);
+    } 
+    // Compute sini using Snell's law
+    float sint = etai / etat * sqrtf(max(0.f, 1 - powf(cosi, 2.f))); 
+    // Total internal reflection
+    if (sint >= 1) { 
+        kr = 1; 
+    } else { 
+        float cost = sqrtf(max(0.f, 1 - powf(sint, 2.f))); 
+        cosi = fabsf(cosi); 
+        float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost)); 
+        float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost)); 
+        kr = (Rs * Rs + Rp * Rp) / 2; 
+    } 
+    // As a consequence of the conservation of energy, transmittance is given by:
+    // kt = 1 - kr;
 }
 
 float max3(vec3 v) { return max(v.x, max(v.y, v.z)); }
