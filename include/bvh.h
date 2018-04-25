@@ -7,7 +7,7 @@
 
 struct Extents {
   Extents();
-  bool intersect(Ray *ray, float *precomputedNumerator,
+  bool intersect(Ray ray, float *precomputedNumerator,
                  float *precomputeDenominator, float &tNear, float &tFar,
                  uint8_t &planeIndex);
   float d[7][2];
@@ -19,7 +19,7 @@ struct BVH {
 
  public:
   BVH(std::vector<Object *> scene);
-  Object *intersect(Ray *ray, std::vector<Object *> scene);
+  Object *intersect(Ray ray, std::vector<Object *> scene);
 };
 
 #endif

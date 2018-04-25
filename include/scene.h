@@ -11,7 +11,7 @@ struct Scene {
   std::vector<Object *> objects;
   Scene();
   Scene(std::vector<Object *> objects);
-  bool intersect(Ray *ray, Intersection &intersection);
+  bool intersect(Ray ray, Intersection &intersection);
   void createBVH();
   void LoadModel(std::string path);
   void LoadTest();

@@ -28,10 +28,10 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-#define SCREEN_WIDTH 512
-#define SCREEN_HEIGHT 512
+#define SCREEN_WIDTH 4096
+#define SCREEN_HEIGHT 2160
 #define FULLSCREEN_MODE false
-#define MIN_BOUNCES 15
+#define MIN_BOUNCES 20
 #define MAX_BOUNCES 30
 #define AA
 #define LIVE
@@ -86,6 +86,7 @@ int main(int argc, char *argv[]) {
     Update(screen);
     Draw(screen);
     SDL_Renderframe(screen);
+    SDL_SaveImage(screen, "screenshot.bmp");
   }
 #else
   Update();
@@ -94,7 +95,7 @@ int main(int argc, char *argv[]) {
   Update();
 #endif
 
-  SDL_SaveImage(screen, "screenshot.bmp");
+  SDL_SaveImage(screen, "screenshot.png");
 
   KillSDL(screen);
   return 0;
@@ -158,7 +159,11 @@ std::uniform_real_distribution<float> distribution(0, 1);
 
 vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
   Intersection intersection;
-  if (scene->intersect(new Ray(start + dir * 1e-4f, dir), intersection)) {
+  Ray ray;
+
+  ray.position = start + dir * 1e-4f;
+  ray.direction = dir;
+  if (scene->intersect(ray, intersection)) {
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
     if (intersection.primitive->isLight()) {
@@ -185,7 +190,10 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
           float lightDist = glm::length(lightVec);
           vec4 lightDir = lightVec / lightDist;
           Intersection lightIntersection;
-          if (scene->intersect(new Ray(hitPos + lightDir * 1e-4f, lightDir),
+
+          ray.position = hitPos + lightDir * 1e-4f;
+          ray.direction = lightDir;
+          if (scene->intersect(ray,
                                lightIntersection)) {
             if (light == lightIntersection.primitive) {
               vec4 reflected = glm::reflect(lightDir, normal);

@@ -25,7 +25,7 @@ Scene::Scene() {
 
 Scene::Scene(vector<Object *> objects) : objects(objects) {}
 
-bool Scene::intersect(Ray *ray, Intersection &intersection) {
+bool Scene::intersect(Ray ray, Intersection &intersection) {
   Primitive *closestPrimitive = NULL;
   float minDist = INFINITY;
   if (bvh != NULL) {
@@ -55,7 +55,7 @@ bool Scene::intersect(Ray *ray, Intersection &intersection) {
   }
   intersection.primitive = closestPrimitive;
   intersection.distance = minDist;
-  intersection.position = ray->position + minDist * ray->direction;
+  intersection.position = ray.position + minDist * ray.direction;
   return closestPrimitive != NULL || minDist != INFINITY;
 }
 

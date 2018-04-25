@@ -11,10 +11,6 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-/* RAY CLASS IMPLEMENTATION */
-Ray::Ray(vec4 position, vec4 direction)
-    : position(position), direction(direction){};
-
 /* TEXTURE IMPLEMENTATION */
 std::map<std::string, Texture *> Texture::textures;
 Texture::Texture(Mat image) : image(image){};
@@ -46,7 +42,7 @@ bool Primitive::isLight() {
   return material.emission.x > 0 || material.emission.y > 0 ||
          material.emission.z > 0;
 }
-float Primitive::intersect(Ray *ray) { return INFINITY; }
+float Primitive::intersect(Ray ray) { return INFINITY; }
 
 /* OBJECT CLASS IMPLEMENTATION */
 Object::Object(vector<Primitive *> primitives) : primitives(primitives){};
@@ -100,16 +96,16 @@ vec4 Triangle::randomPoint() {
     }
   }
 }
-float Triangle::intersect(Ray *ray) {
-  vec3 b = glm::vec3(ray->position - v0.position);
-  mat3 A(-glm::vec3(ray->direction), e1, e2);
+float Triangle::intersect(Ray ray) {
+  vec3 b = glm::vec3(ray.position - v0.position);
+  mat3 A(-glm::vec3(ray.direction), e1, e2);
   float detA = determinant(A);
   float dist = determinant(mat3(b, e1, e2)) / detA;
 
   // Calculate point of intersection
   if (dist > 0) {
-    float u = determinant(mat3(-vec3(ray->direction), b, e2)) / detA;
-    float v = determinant(mat3(-vec3(ray->direction), e1, b)) / detA;
+    float u = determinant(mat3(-vec3(ray.direction), b, e2)) / detA;
+    float v = determinant(mat3(-vec3(ray.direction), e1, b)) / detA;
     if (u >= 0 && v >= 0 && u + v <= 1) {
       return dist;
     }
@@ -127,18 +123,18 @@ void Triangle::ComputeNormal() {
 Sphere::Sphere(vec4 c, float radius, Material material)
     : Primitive(material), c(c), radius(radius) {}
 vec4 Sphere::getNormal(const vec4 &p) { return (p - c) / radius; }
-float Sphere::intersect(Ray *ray) {
-  vec4 sC = ray->position - c;
+float Sphere::intersect(Ray ray) {
+  vec4 sC = ray.position - c;
   float inSqrt =
-      powf(radius, 2.0f) - (dot(sC, sC) - powf(dot(ray->direction, sC), 2.0f));
+      powf(radius, 2.0f) - (dot(sC, sC) - powf(dot(ray.direction, sC), 2.0f));
   float dist, dist1, dist2;
   if (inSqrt < 0) {
     return INFINITY;
   } else if (inSqrt == 0) {
-    dist = -dot(ray->direction, sC);
+    dist = -dot(ray.direction, sC);
   } else {
-    dist1 = -dot(ray->direction, sC) + sqrt(inSqrt);
-    dist2 = -dot(ray->direction, sC) - sqrt(inSqrt);
+    dist1 = -dot(ray.direction, sC) + sqrt(inSqrt);
+    dist2 = -dot(ray.direction, sC) - sqrt(inSqrt);
     dist = dist1 > 0 && dist1 < dist2 ? dist1 : dist2;
   }
   if (dist > 0) {

@@ -8,7 +8,7 @@ using namespace cv;
 
 void SDL_SaveImage(screen* s, const char* filename) {
   Mat mat = cvUnpackToMat(s);
-  imwrite("screenshot.png", mat);
+  imwrite(filename, mat);
   exit(0);
 }
 
@@ -103,8 +103,8 @@ void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, float depth) {
 }
 
 Mat cvUnpackToMat(screen* s) {
-  #pragma omp parallel for collapse(2)
   Mat mat(s->height, s->width, CV_8UC3, Scalar(0, 0, 0));
+  #pragma omp parallel for collapse(2)
   for (uint32_t y = 0; y < s->height; ++y) {
     for (uint32_t x = 0; x < s->width; ++x) {
       uint32_t pixel = s->buffer[y * s->width + x];

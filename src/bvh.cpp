@@ -20,7 +20,7 @@ Extents::Extents() {
     d[i][0] = INFINITY, d[i][1] = -INFINITY;
 }
 
-bool Extents::intersect(Ray *ray, float *precomputedNumerator,
+bool Extents::intersect(Ray ray, float *precomputedNumerator,
                         float *precomputeDenominator, float &tNear, float &tFar,
                         uint8_t &planeIndex) {
   for (uint8_t i = 0; i < normalSize; ++i) {
@@ -45,13 +45,13 @@ BVH::BVH(vector<Object *> scene) {
   }
 }
 
-Object *BVH::intersect(Ray *ray, vector<Object *> scene) {
+Object *BVH::intersect(Ray ray, vector<Object *> scene) {
   float tClosest = INFINITY;
   Object *hitObject = NULL;
   float precomputedNumerator[normalSize], precomputeDenominator[normalSize];
   for (uint8_t i = 0; i < normalSize; ++i) {
-    precomputedNumerator[i] = dot(planeSetNormals[i], vec3(ray->position));
-    precomputeDenominator[i] = dot(planeSetNormals[i], vec3(ray->direction));
+    precomputedNumerator[i] = dot(planeSetNormals[i], vec3(ray.position));
+    precomputeDenominator[i] = dot(planeSetNormals[i], vec3(ray.direction));
   }
   for (uint32_t i = 0; i < scene.size(); ++i) {
     float tNear = -INFINITY, tFar = INFINITY;

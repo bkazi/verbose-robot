@@ -10,10 +10,8 @@
 struct Primitive;  // Forward declare to fix problems
 
 struct Ray {
- public:
   glm::vec4 position;
   glm::vec4 direction;
-  Ray(glm::vec4 position, glm::vec4 direction);
 };
 
 struct Intersection {
@@ -79,7 +77,7 @@ struct Primitive {
   Material material;
 
   Primitive(Material material);
-  virtual float intersect(Ray *ray);
+  virtual float intersect(Ray ray);
   virtual glm::vec4 randomPoint();
   virtual glm::vec4 getNormal(const glm::vec4 &p);
   virtual bool isLight();
@@ -103,7 +101,7 @@ class Triangle : public Primitive {
   Triangle(Vertex v0, Vertex v1, Vertex v2, Material material);
   glm::vec4 getNormal(const glm::vec4 &p = glm::vec4(0)) override;
   glm::vec4 randomPoint() override;
-  float intersect(Ray *ray) override;
+  float intersect(Ray ray) override;
   void ComputeNormal();
 
  private:
@@ -117,7 +115,7 @@ class Sphere : public Primitive {
 
   Sphere(glm::vec4 c, float radius, Material material);
   glm::vec4 getNormal(const glm::vec4 &p) override;
-  float intersect(Ray *ray) override;
+  float intersect(Ray ray) override;
 };
 
 #endif
