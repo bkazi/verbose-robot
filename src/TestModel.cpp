@@ -23,7 +23,7 @@ void LoadTestModel(std::vector<Object *> &scene) {
   // ---------------------------------------------------------------------------
   // Sphere 1
   std::vector<Primitive *> sphere1Primitives;
-  sphere1Primitives.push_back(new Sphere(vec4(-0.5, 0.6, -0.5, 1), 0.35f,
+  sphere1Primitives.push_back(new Sphere(vec4(-0.5, 0.5, -0.5, 1), 0.35f,
                                          vec3(0), white, 200, 1.0, 1.0, 0.0, 1.5, true));
   scene.push_back(new Object(sphere1Primitives));
 
@@ -52,14 +52,14 @@ void LoadTestModel(std::vector<Object *> &scene) {
   // Light
   std::vector<Primitive *> lightPrimitives;
   lightPrimitives.push_back(
-      new Triangle(vec4(3 * L / 4, 0.99 * L, 1 * L / 4, 1),
-                   vec4(1 * L / 4, 0.99 * L, 1 * L / 4, 1),
-                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 30.0f * vec3(1),
+      new Triangle(vec4(3 * L / 5, 0.99 * L, 1.5 * L / 5, 1),
+                   vec4(2 * L / 5, 0.99 * L, 1.5 * L / 5, 1),
+                   vec4(3 * L / 5, 0.99 * L, 2.5 * L / 5, 1), 15.0f * vec3(1),
                    vec3(0), 1, 0.1, 0.1, 0.8, 1.0, false));
   lightPrimitives.push_back(
-      new Triangle(vec4(1 * L / 4, 0.99 * L, 1 * L / 4, 1),
-                   vec4(1 * L / 4, 0.99 * L, 3 * L / 4, 1),
-                   vec4(3 * L / 4, 0.99 * L, 3 * L / 4, 1), 30.0f * vec3(1),
+      new Triangle(vec4(2 * L / 5, 0.99 * L, 1.5 * L / 5, 1),
+                   vec4(2 * L / 5, 0.99 * L, 2.5 * L / 5, 1),
+                   vec4(3 * L / 5, 0.99 * L, 2.5 * L / 5, 1), 15.0f * vec3(1),
                    vec3(0), 1, 0.1, 0.1, 0.8, 1.0, false));
   scene.push_back(new Object(lightPrimitives));
 
@@ -153,24 +153,24 @@ void LoadTestModel(std::vector<Object *> &scene) {
 
   std::vector<Primitive *> tallBlockPrimitives;
   // Front
-  tallBlockPrimitives.push_back( new Triangle(E, B, A, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
-  tallBlockPrimitives.push_back( new Triangle(E, F, B, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(E, B, A, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(E, F, B, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
 
   // Front
-  tallBlockPrimitives.push_back( new Triangle(F, D, B, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
-  tallBlockPrimitives.push_back( new Triangle(F, H, D, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(F, D, B, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(F, H, D, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
 
   // BACK
-  tallBlockPrimitives.push_back( new Triangle(H, C, D, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
-  tallBlockPrimitives.push_back( new Triangle(H, G, C, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(H, C, D, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(H, G, C, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
 
   // LEFT
-  tallBlockPrimitives.push_back( new Triangle(G, E, C, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
-  tallBlockPrimitives.push_back( new Triangle(E, A, C, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(G, E, C, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(E, A, C, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
 
   // TOP
-  tallBlockPrimitives.push_back( new Triangle(G, F, E, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
-  tallBlockPrimitives.push_back( new Triangle(G, H, F, vec3(0), white, 100, 1.0, 1.0, 0.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(G, F, E, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
+  tallBlockPrimitives.push_back( new Triangle(G, H, F, vec3(0), purple, 1, 1.0, 0.0, 1.0, 1.0, false) );
   scene.push_back(new Object(tallBlockPrimitives));
 
   // ----------------------------------------------
