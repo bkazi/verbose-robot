@@ -28,19 +28,19 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 240
+#define SCREEN_WIDTH 512
+#define SCREEN_HEIGHT 512
 #define FULLSCREEN_MODE false
-#define MIN_BOUNCES 5
-#define MAX_BOUNCES 10
-// #define AA
+#define MIN_BOUNCES 15
+#define MAX_BOUNCES 30
+#define AA
 #define LIVE
 
 float m = numeric_limits<float>::max();
 vec4 lightPos(0, -0.5, -0.7, 1.0);
 vec3 lightColor = 14.f * vec3(1, 1, 1);
 vec3 indirectLighting = 0.5f * vec3(1, 1, 1);
-float apertureSize = 0.1;
+float apertureSize = 0.2f;
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS */
@@ -114,14 +114,13 @@ void Draw(screen *screen) {
                                       camera->getRotationMatrix());
       color += Light(camera->position, direction);
 #else
-      ivec2 samplePoints[5] = {
+      ivec2 samplePoints[4] = {
           ivec2(x - apertureSize, y - apertureSize),
           ivec2(x + apertureSize, y - apertureSize),
           ivec2(x + apertureSize, y + apertureSize),
           ivec2(x - apertureSize, y + apertureSize),
-          ivec2(x, y),
       };
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 4; i++) {
         vec4 direction = glm::normalize(vec4((float)samplePoints[i].x,
                                              (float)samplePoints[i].y,
                                              camera->focalLength, 1) *
@@ -162,9 +161,12 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
   if (scene->intersect(new Ray(start + dir * 1e-4f, dir), intersection)) {
     // Russian roulette termination
     float U = rand() / (float)RAND_MAX;
-    if (bounce > MIN_BOUNCES &&
+    if (intersection.primitive->isLight()) {
+      return intersection.primitive->material.emission;
+    }
+    if ((bounce > MIN_BOUNCES &&
         (bounce > MAX_BOUNCES ||
-         U > max3(intersection.primitive->material.color))) {
+         U > max3(intersection.primitive->material.color)))) {
       // terminate
       return vec3(0);
     }
@@ -262,8 +264,7 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
     }
     indirectLight = glm::clamp(indirectLight, vec3(0), vec3(10));
 
-    return intersection.primitive->material.emission +
-           intersection.primitive->material.color *
+    return intersection.primitive->material.color *
                (intersection.primitive->material.diffuse * directDiffuseLight +
                 intersection.primitive->material.ambient * indirectLight +
                 intersection.primitive->material.specular *
