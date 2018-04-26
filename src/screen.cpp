@@ -1,19 +1,21 @@
-#include "rasteriser_screen.h"
+#include "screen.h"
 
 #include <glm/glm.hpp>
 #include <iostream>
 #include "SDL.h"
 
+using namespace std;
 using namespace cv;
+using glm::clamp;
+using glm::vec3;
 
 void SDL_SaveImage(screen* s, const char* filename) {
   Mat mat = cvUnpackToMat(s);
   imwrite(filename, mat);
-  exit(0);
 }
 
 void KillSDL(screen* s) {
-  delete[] s->buffer;
+  delete[] s->pixels;
   delete[] s->depthBuffer;
   SDL_DestroyTexture(s->texture);
   SDL_DestroyRenderer(s->renderer);
@@ -22,25 +24,50 @@ void KillSDL(screen* s) {
 }
 
 void SDL_Renderframe(screen* s) {
-  SDL_UpdateTexture(s->texture, NULL, s->buffer, s->width * sizeof(uint32_t));
+  uint32_t *buffer = new uint32_t[s->width * s->height];
+#pragma omp parallel for collapse(2)
+  for (int y = 0; y < s->height; y++) {
+    for (int x = 0; x < s->width; x++) {
+      glm::vec3 color = s->pixels[y * s->width + x] /
+                        (float)(s->samples > 0 ? s->samples : 1.f);
+      uint32_t r = uint32_t(clamp(255 * color.r, 0.f, 255.f));
+      uint32_t g = uint32_t(clamp(255 * color.g, 0.f, 255.f));
+      uint32_t b = uint32_t(clamp(255 * color.b, 0.f, 255.f));
+
+      buffer[y * s->width + x] = (0xFF << 24) + (r << 16) + (g << 8) + b;
+    }
+  }
+  SDL_UpdateTexture(s->texture, NULL, buffer, s->width * sizeof(uint32_t));
   SDL_RenderClear(s->renderer);
   SDL_RenderCopy(s->renderer, s->texture, NULL, NULL);
   SDL_RenderPresent(s->renderer);
 }
 
-screen* InitializeSDL(int width, int height, bool fullscreen) {
+screen* createScreen(string type, int width, int height) {
+  screen* s = new screen;
+  s->width = width;
+  s->height = height;
+  if (type == "raytracer") {
+    s->accumulate = true;
+  } else {
+    s->accumulate = false;
+  }
+  s->pixels = new vec3[width * height];
+  s->depthBuffer = new float[width * height];
+  s->samples = 0;
+
+  clear(s);
+
+  return s;
+}
+
+screen* InitializeSDL(string type, int width, int height, bool fullscreen) {
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
     std::cout << "Could not initialise SDL: " << SDL_GetError() << std::endl;
     exit(1);
   }
 
-  screen* s = new screen;
-  s->width = width;
-  s->height = height;
-  s->buffer = new uint32_t[width * height];
-  s->depthBuffer = new float[width * height];
-  memset(s->buffer, 0, width * height * sizeof(uint32_t));
-  memset(s->depthBuffer, 0.f, width * height * sizeof(float));
+  screen *s = createScreen(type, width, height);
 
   uint32_t flags = SDL_WINDOW_OPENGL;
   if (fullscreen) {
@@ -87,36 +114,41 @@ bool NoQuitMessageSDL() {
   return true;
 }
 
-void PutPixelSDL(screen* s, int x, int y, glm::vec3 colour, float depth) {
+void RaytracerPutPixelSDL(screen* s, int x, int y, vec3 color, float samples) {
+  s->pixels[y * s->width + x] += color;
+  s->samples = samples;
+}
+
+void RasteriserPutPixelSDL(screen* s, int x, int y, vec3 color, float depth) {
+  if (depth > s->depthBuffer[y * s->width + x]) {
+    s->depthBuffer[y * s->width + x] = depth;
+    s->pixels[y * s->width + x] = color;
+  }
+}
+
+void PutPixelSDL(screen* s, int x, int y, vec3 color, float SorD) {
   if (x < 0 || x >= s->width || y < 0 || y >= s->height) {
     std::cout << "apa" << std::endl;
     return;
   }
-  uint32_t r = uint32_t(glm::clamp(255 * colour.r, 0.f, 255.f));
-  uint32_t g = uint32_t(glm::clamp(255 * colour.g, 0.f, 255.f));
-  uint32_t b = uint32_t(glm::clamp(255 * colour.b, 0.f, 255.f));
-
-  if (depth > s->depthBuffer[y * s->width + x]) {
-    s->depthBuffer[y * s->width + x] = depth;
-    s->buffer[y * s->width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
+  if (s->accumulate == true) {
+    return RaytracerPutPixelSDL(s, x, y, color, (int)SorD);
+  } else {
+    return RasteriserPutPixelSDL(s, x, y, color, SorD);
   }
 }
 
 Mat cvUnpackToMat(screen* s) {
   Mat mat(s->height, s->width, CV_8UC3, Scalar(0, 0, 0));
-  #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (uint32_t y = 0; y < s->height; ++y) {
     for (uint32_t x = 0; x < s->width; ++x) {
-      uint32_t pixel = s->buffer[y * s->width + x];
-      uint32_t mask = 0xFF;
-      uint32_t b = mask & pixel;
-      uint32_t g = mask & (pixel >> 8);
-      uint32_t r = mask & (pixel >> 16);
+      vec3 pixel = s->pixels[y * s->width + x];
 
       Vec3b color = mat.at<Vec3b>(Point(x, y));
-      color[0] = b;
-      color[1] = g;
-      color[2] = r;
+      color[0] = clamp(pixel.b * 255.f, 0.f, 255.f);
+      color[1] = clamp(pixel.g * 255.f, 0.f, 255.f);
+      color[2] = clamp(pixel.r * 255.f, 0.f, 255.f);
       mat.at<Vec3b>(Point(x, y)) = color;
     }
   }
@@ -124,16 +156,22 @@ Mat cvUnpackToMat(screen* s) {
 }
 
 void cvPackToScreen(screen* s, Mat mat) {
-  #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
   for (uint32_t y = 0; y < s->height; ++y) {
     for (uint32_t x = 0; x < s->width; ++x) {
       Vec3b color = mat.at<Vec3b>(Point(x, y));
 
-      uint32_t r = uint32_t(glm::clamp((float)color[2], 0.f, 255.f));
-      uint32_t g = uint32_t(glm::clamp((float)color[1], 0.f, 255.f));
-      uint32_t b = uint32_t(glm::clamp((float)color[0], 0.f, 255.f));
+      float r = clamp((float)color[2] / 255.f, 0.f, 1.f);
+      float g = clamp((float)color[1] / 255.f, 0.f, 1.f);
+      float b = clamp((float)color[0] / 255.f, 0.f, 1.f);
 
-      s->buffer[y * s->width + x] = (255 << 24) + (r << 16) + (g << 8) + b;
+      s->pixels[y * s->width + x] = vec3(r, g, b);
     }
   }
+}
+
+void clear(screen* s) {
+  memset(s->pixels, 0, s->height * s->width * sizeof(vec3));
+  memset(s->depthBuffer, 0.f,
+         s->height * s->width * sizeof(float));
 }

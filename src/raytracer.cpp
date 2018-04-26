@@ -17,7 +17,7 @@
 #include "TestModel.h"
 #include "camera.h"
 #include "objects.h"
-#include "raytracer_screen.h"
+#include "screen.h"
 #include "scene.h"
 
 using namespace std;
@@ -28,12 +28,12 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-#define SCREEN_WIDTH 4096
-#define SCREEN_HEIGHT 2160
+#define SCREEN_WIDTH 240
+#define SCREEN_HEIGHT 240
 #define FULLSCREEN_MODE false
-#define MIN_BOUNCES 20
-#define MAX_BOUNCES 30
-#define AA
+#define MIN_BOUNCES 5
+#define MAX_BOUNCES 10
+// #define AA
 #define LIVE
 
 float m = numeric_limits<float>::max();
@@ -64,7 +64,7 @@ Scene *scene;
 Camera *camera;
 
 int main(int argc, char *argv[]) {
-  screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
+  screen *screen = InitializeSDL("raytracer", SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   scene = new Scene();
   if (argc >= 2) {
@@ -80,13 +80,12 @@ int main(int argc, char *argv[]) {
                       0.001, 0.001);
 
   srand(42);
-  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
 #ifdef LIVE
   while (NoQuitMessageSDL()) {
     Update(screen);
     Draw(screen);
     SDL_Renderframe(screen);
-    SDL_SaveImage(screen, "screenshot.bmp");
+    SDL_SaveImage(screen, "screenshot.png");
   }
 #else
   Update();
@@ -147,9 +146,7 @@ void Update(screen *screen) {
   /* Update variables*/
 
   if (camera->update(dt)) {
-    memset(screen->buffer, 0,
-           screen->height * screen->width * sizeof(uint32_t));
-    memset(screen->pixels, 0, screen->height * screen->width * sizeof(vec3));
+    clear(screen);
     samples = 0;
   }
 }

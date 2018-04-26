@@ -11,16 +11,20 @@ typedef struct {
   SDL_Texture *texture;
   int height;
   int width;
-  uint32_t *buffer;
+  bool accumulate;
+  glm::vec3 *pixels;
   float *depthBuffer;
+  int samples;
 } screen;
 
-screen *InitializeSDL(int width, int height, bool fullscreen = false);
+screen *createScreen(std::string type, int width, int height);
+screen *InitializeSDL(std::string type, int width, int height, bool fullscreen = false);
 bool NoQuitMessageSDL();
-void PutPixelSDL(screen *s, int x, int y, glm::vec3 color, float depth);
+void PutPixelSDL(screen *s, int x, int y, glm::vec3 color, float SorD);
 void SDL_Renderframe(screen *s);
 void KillSDL(screen *s);
 void SDL_SaveImage(screen *s, const char *filename);
 cv::Mat cvUnpackToMat(screen *s);
-void cvPackToScreen(screen *screen, cv::Mat mat);
+void cvPackToScreen(screen *s, cv::Mat mat);
+void clear(screen *s);
 #endif

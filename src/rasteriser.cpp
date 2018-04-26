@@ -8,7 +8,7 @@
 #include <SDL.h>
 
 #include "light.h"
-#include "rasteriser_screen.h"
+#include "screen.h"
 #include "scene.h"
 #include "util.h"
 #include "camera.h"
@@ -28,6 +28,7 @@ using glm::vec4;
 #define FULLSCREEN_MODE false
 #define NEAR_PLANE 0.1
 #define FAR_PLANE 5
+#define ENABLE_FXAA
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS */
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) {
   light.power = lightPower;
   light.needsUpdate = true;
 
-  screen *screen = InitializeSDL(SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
+  screen *screen = InitializeSDL("rasteriser", SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   if (argc >= 2) {
     const string path = argv[1];
@@ -96,15 +97,17 @@ int main(int argc, char *argv[]) {
     Draw(screen, camera);
     // for (int y = 0; y < LIGHTMAP_SIZE; y++) {
     //   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
-    //     PutPixelSDL(screen, x, y, vec3(light.depthBuffer[2][y * LIGHTMAP_SIZE
+    //     PutPixelSDL(screen, false, x, y, vec3(light.depthBuffer[2][y * LIGHTMAP_SIZE
     //     + x]), 100.f);
     //   }
     // }
+    #ifdef ENABLE_FXAA
     FXAA(screen);
+    #endif
     SDL_Renderframe(screen);
   }
 
-  SDL_SaveImage(screen, "screenshot.bmp");
+  SDL_SaveImage(screen, "screenshot.png");
 
   KillSDL(screen);
   return 0;
@@ -113,9 +116,7 @@ int main(int argc, char *argv[]) {
 /*Place your drawing here*/
 void Draw(screen *screen, Camera *camera) {
   /* Clear buffer */
-  memset(screen->buffer, 0, screen->height * screen->width * sizeof(uint32_t));
-  memset(screen->depthBuffer, 0,
-         screen->height * screen->width * sizeof(float));
+  clear(screen);
 
 #pragma omp parallel for simd schedule(guided)
   for (uint32_t i = 0; i < scene->objects.size(); ++i) {
@@ -424,18 +425,14 @@ void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
 
 void DrawShadowMap(Light &light) {
   if (light.needsUpdate == true) {
-    screen s;
-    s.width = LIGHTMAP_SIZE;
-    s.height = LIGHTMAP_SIZE;
-    s.buffer = new uint32_t[LIGHTMAP_SIZE * LIGHTMAP_SIZE];
-    s.depthBuffer = new float[LIGHTMAP_SIZE * LIGHTMAP_SIZE];
+    screen *s = createScreen("rasteriser", LIGHTMAP_SIZE, LIGHTMAP_SIZE);
 
     for (int idx = 0; idx < 6; idx++) {
       Camera *camera = new Camera(lightPos, light.rot[idx], LIGHTMAP_SIZE, 0, 0);
 
-      Draw(&s, camera);
+      Draw(s, camera);
 
-      memcpy(light.depthBuffer[idx], s.depthBuffer,
+      memcpy(light.depthBuffer[idx], s->depthBuffer,
              LIGHTMAP_SIZE * LIGHTMAP_SIZE * sizeof(float));
     }
   }
