@@ -1,7 +1,7 @@
 #include "bvh.h"
 #include <atomic>
-#include <iostream>
 #include <glm/gtx/string_cast.hpp>
+#include <iostream>
 
 using namespace std;
 using glm::vec3;
@@ -20,38 +20,38 @@ const vec3 planeSetNormals[normalSize] = {vec3(1, 0, 0),
 /* BOUNDING BOX IMPLEMENTATION */
 
 BBox::BBox() {}
-BBox::BBox(vec3 min_, vec3 max_) {
-  bounds[0] = min_;
-  bounds[1] = max_;
+BBox::BBox(vec3 min, vec3 max) {
+  bounds[0] = min;
+  bounds[1] = max;
 }
-BBox& BBox::extendBy(const vec3& p) {
-  if (p.x < bounds[0].x) bounds[0].x = p.x;
-  if (p.y < bounds[0].y) bounds[0].y = p.y;
-  if (p.z < bounds[0].z) bounds[0].z = p.z;
-  if (p.x > bounds[1].x) bounds[1].x = p.x;
-  if (p.y > bounds[1].y) bounds[1].y = p.y;
-  if (p.z > bounds[1].z) bounds[1].z = p.z;
+BBox& BBox::extendBy(const vec3& point) {
+  if (point.x < bounds[0].x) bounds[0].x = point.x;
+  if (point.y < bounds[0].y) bounds[0].y = point.y;
+  if (point.z < bounds[0].z) bounds[0].z = point.z;
+  if (point.x > bounds[1].x) bounds[1].x = point.x;
+  if (point.y > bounds[1].y) bounds[1].y = point.y;
+  if (point.z > bounds[1].z) bounds[1].z = point.z;
 
   return *this;
 }
 vec3 BBox::centroid() const { return (bounds[0] + bounds[1]) * 0.5f; }
 
-bool BBox::intersect(const vec3& orig, const vec3& invDir, const vec3& sign,
-                     float& tHit) const {
+bool BBox::intersect(const vec3& start, const vec3& direction, const vec3& sign,
+                     float& minDist) const {
   int idx;
   float tmin, tmax, tymin, tymax, tzmin, tzmax;
 
   idx = round(sign.x);
-  tmin = (bounds[idx].x - orig.x) * invDir.x;
+  tmin = (bounds[idx].x - start.x) * direction.x;
 
   idx = round(1 - sign.x);
-  tmax = (bounds[idx].x - orig.x) * invDir.x;
+  tmax = (bounds[idx].x - start.x) * direction.x;
 
   idx = round(sign.y);
-  tymin = (bounds[idx].y - orig.y) * invDir.y;
+  tymin = (bounds[idx].y - start.y) * direction.y;
 
   idx = round(1 - sign.y);
-  tymax = (bounds[idx].y - orig.y) * invDir.y;
+  tymax = (bounds[idx].y - start.y) * direction.y;
 
   if ((tmin > tymax) || (tymin > tmax)) return false;
 
@@ -59,17 +59,17 @@ bool BBox::intersect(const vec3& orig, const vec3& invDir, const vec3& sign,
   if (tymax < tmax) tmax = tymax;
 
   idx = round(sign.z);
-  tzmin = (bounds[idx].z - orig.z) * invDir.z;
+  tzmin = (bounds[idx].z - start.z) * direction.z;
 
   idx = round(1 - sign.z);
-  tzmax = (bounds[idx].z - orig.z) * invDir.z;
+  tzmax = (bounds[idx].z - start.z) * direction.z;
 
   if ((tmin > tzmax) || (tzmin > tmax)) return false;
 
   if (tzmin > tmin) tmin = tzmin;
   if (tzmax < tmax) tmax = tzmax;
 
-  tHit = tmin;
+  minDist = tmin;
 
   return true;
 }
@@ -78,17 +78,17 @@ bool BBox::intersect(const vec3& orig, const vec3& invDir, const vec3& sign,
 
 BVH::Extents::Extents() {
   for (uint8_t i = 0; i < normalsSize; ++i)
-    d[i][0] = INFINITY, d[i][1] = -INFINITY;
+    slabs[i][0] = INFINITY, slabs[i][1] = -INFINITY;
 }
-void BVH::Extents::extendBy(const Extents& e) {
+void BVH::Extents::extendBy(const Extents& extents) {
   for (uint8_t i = 0; i < normalsSize; ++i) {
-    if (e.d[i][0] < d[i][0]) d[i][0] = e.d[i][0];
-    if (e.d[i][1] > d[i][1]) d[i][1] = e.d[i][1];
+    if (extents.slabs[i][0] < slabs[i][0]) slabs[i][0] = extents.slabs[i][0];
+    if (extents.slabs[i][1] > slabs[i][1]) slabs[i][1] = extents.slabs[i][1];
   }
 }
 vec3 BVH::Extents::centroid() const {
-  return vec3(d[0][0] + d[0][1] * 0.5, d[1][0] + d[1][1] * 0.5,
-              d[2][0] + d[2][1] * 0.5);
+  return vec3(slabs[0][0] + slabs[0][1] * 0.5, slabs[1][0] + slabs[1][1] * 0.5,
+              slabs[2][0] + slabs[2][1] * 0.5);
 }
 
 bool BVH::Extents::intersect(const float* precomputedNumerator,
@@ -97,9 +97,9 @@ bool BVH::Extents::intersect(const float* precomputedNumerator,
   for (uint8_t i = 0; i < normalsSize; ++i) {
     float tNearExtents =
 #include <glm/gtx/string_cast.hpp>
-        (d[i][0] - precomputedNumerator[i]) / precomputedDenominator[i];
+        (slabs[i][0] - precomputedNumerator[i]) / precomputedDenominator[i];
     float tFarExtents =
-        (d[i][1] - precomputedNumerator[i]) / precomputedDenominator[i];
+        (slabs[i][1] - precomputedNumerator[i]) / precomputedDenominator[i];
     if (precomputedDenominator[i] < 0) std::swap(tNearExtents, tFarExtents);
     if (tNearExtents > tNear) tNear = tNearExtents, planeIndex = i;
     if (tFarExtents < tFar) tFar = tFarExtents;
@@ -112,13 +112,13 @@ bool BVH::Extents::intersect(const float* precomputedNumerator,
 /* OCTREE IMPLEMENTATION */
 
 BVH::Octree::Octree(const Extents& sceneExtents) {
-  float xDiff = sceneExtents.d[0][1] - sceneExtents.d[0][0];
-  float yDiff = sceneExtents.d[1][1] - sceneExtents.d[1][0];
-  float zDiff = sceneExtents.d[2][1] - sceneExtents.d[2][0];
+  float xDiff = sceneExtents.slabs[0][1] - sceneExtents.slabs[0][0];
+  float yDiff = sceneExtents.slabs[1][1] - sceneExtents.slabs[1][0];
+  float zDiff = sceneExtents.slabs[2][1] - sceneExtents.slabs[2][0];
   float maxDiff = std::max(xDiff, std::max(yDiff, zDiff));
-  vec3 minPlusMax(sceneExtents.d[0][0] + sceneExtents.d[0][1],
-                  sceneExtents.d[1][0] + sceneExtents.d[1][1],
-                  sceneExtents.d[2][0] + sceneExtents.d[2][1]);
+  vec3 minPlusMax(sceneExtents.slabs[0][0] + sceneExtents.slabs[0][1],
+                  sceneExtents.slabs[1][0] + sceneExtents.slabs[1][1],
+                  sceneExtents.slabs[2][0] + sceneExtents.slabs[2][1]);
   bbox[0] = (minPlusMax - maxDiff) * 0.5f;
   bbox[1] = (minPlusMax + maxDiff) * 0.5f;
   root = new OctreeNode;
@@ -140,8 +140,8 @@ void BVH::Octree::deleteOctreeNode(OctreeNode*& node) {
   delete node;
 }
 
-BVH::Octree::QueueElement::QueueElement(const OctreeNode* n, float tn)
-    : node(n), t(tn) {}
+BVH::Octree::QueueElement::QueueElement(const OctreeNode* node, float distance)
+    : node(node), distance(distance) {}
 
 void BVH::Octree::insert(OctreeNode*& node, const Extents* extents,
                          const BBox& bbox, uint32_t depth) {
@@ -243,24 +243,32 @@ BVH::BVH(vector<Object*> scene) {
         Sphere* sph;
         if ((tri = dynamic_cast<Triangle*>(scene[i]->primitives[ii]))) {
           float v0d = dot(planeSetNormals[j], vec3(tri->v0.position));
-          if (v0d < extentsList[i].d[j][0]) extentsList[i].d[j][0] = v0d;
-          if (v0d > extentsList[i].d[j][1]) extentsList[i].d[j][1] = v0d;
+          if (v0d < extentsList[i].slabs[j][0])
+            extentsList[i].slabs[j][0] = v0d;
+          if (v0d > extentsList[i].slabs[j][1])
+            extentsList[i].slabs[j][1] = v0d;
 
           float v1d = dot(planeSetNormals[j], vec3(tri->v1.position));
-          if (v1d < extentsList[i].d[j][0]) extentsList[i].d[j][0] = v1d;
-          if (v1d > extentsList[i].d[j][1]) extentsList[i].d[j][1] = v1d;
+          if (v1d < extentsList[i].slabs[j][0])
+            extentsList[i].slabs[j][0] = v1d;
+          if (v1d > extentsList[i].slabs[j][1])
+            extentsList[i].slabs[j][1] = v1d;
 
           float v2d = dot(planeSetNormals[j], vec3(tri->v2.position));
-          if (v2d < extentsList[i].d[j][0]) extentsList[i].d[j][0] = v2d;
-          if (v2d > extentsList[i].d[j][1]) extentsList[i].d[j][1] = v2d;
+          if (v2d < extentsList[i].slabs[j][0])
+            extentsList[i].slabs[j][0] = v2d;
+          if (v2d > extentsList[i].slabs[j][1])
+            extentsList[i].slabs[j][1] = v2d;
         } else if ((sph = dynamic_cast<Sphere*>(scene[i]->primitives[ii]))) {
-          float p1 = dot(planeSetNormals[j], vec3(sph->c) + (planeSetNormals[j] * sph->radius));
-          if (p1 < extentsList[i].d[j][0]) extentsList[i].d[j][0] = p1;
-          if (p1 > extentsList[i].d[j][1]) extentsList[i].d[j][1] = p1;
+          float p1 = dot(planeSetNormals[j],
+                         vec3(sph->c) + (planeSetNormals[j] * sph->radius));
+          if (p1 < extentsList[i].slabs[j][0]) extentsList[i].slabs[j][0] = p1;
+          if (p1 > extentsList[i].slabs[j][1]) extentsList[i].slabs[j][1] = p1;
 
-          float p2 = dot(planeSetNormals[j], vec3(sph->c) - (planeSetNormals[j] * sph->radius));
-          if (p1 < extentsList[i].d[j][0]) extentsList[i].d[j][0] = p2;
-          if (p1 > extentsList[i].d[j][1]) extentsList[i].d[j][1] = p2;
+          float p2 = dot(planeSetNormals[j],
+                         vec3(sph->c) - (planeSetNormals[j] * sph->radius));
+          if (p1 < extentsList[i].slabs[j][0]) extentsList[i].slabs[j][0] = p2;
+          if (p1 > extentsList[i].slabs[j][1]) extentsList[i].slabs[j][1] = p2;
         }
       }
     }
@@ -280,7 +288,7 @@ BVH::BVH(vector<Object*> scene) {
 bool BVH::intersect(Ray ray, Intersection& intersection) const {
   intersection.distance = INFINITY;
   intersection.primitive = nullptr;
-  float nearestHit = INFINITY;
+  float minDist = INFINITY;
   float precomputedNumerator[normalsSize];
   float precomputedDenominator[normalsSize];
   for (uint8_t i = 0; i < normalsSize; ++i) {
@@ -295,18 +303,18 @@ bool BVH::intersect(Ray ray, Intersection& intersection) const {
                                            planeIndex) ||
       tFar < 0)
     return false;
-  nearestHit = tFar;
+  minDist = tFar;
   std::priority_queue<BVH::Octree::QueueElement> queue;
   queue.push(BVH::Octree::QueueElement(octree->root, 0));
-  while (!queue.empty() && queue.top().t < nearestHit) {
+  while (!queue.empty() && queue.top().distance < minDist) {
     const Octree::OctreeNode* node = queue.top().node;
     queue.pop();
     if (node->isLeaf) {
       for (const auto& e : node->nodeExtentsList) {
         Intersection i;
         if (e->object->intersect(ray, i)) {
-          if (i.distance < nearestHit) {
-            nearestHit = i.distance;
+          if (i.distance < minDist) {
+            minDist = i.distance;
             intersection = i;
           }
         }

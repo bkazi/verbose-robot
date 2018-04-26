@@ -11,23 +11,25 @@ const uint32_t normalsSize = 7;
 class BBox {
  public:
   BBox();
-  BBox(glm::vec3 min_, glm::vec3 max_);
-  BBox& extendBy(const glm::vec3& p);
+  BBox(glm::vec3 min, glm::vec3 max);
+  BBox& extendBy(const glm::vec3& point);
   glm::vec3 centroid() const;
   glm::vec3& operator[](bool i) { return bounds[i]; };
   const glm::vec3 operator[](bool i) const { return bounds[i]; };
-  bool intersect(const glm::vec3&, const glm::vec3&, const glm::vec3&,
-                 float&) const;
+  bool intersect(const glm::vec3& start, const glm::vec3& direction,
+                 const glm::vec3& sign, float& minDist) const;
   glm::vec3 bounds[2] = {glm::vec3(INFINITY), glm::vec3(-INFINITY)};
 };
 
 struct BVH {
   struct Extents {
     Extents();
-    void extendBy(const Extents& e);
+    void extendBy(const Extents& extents);
     glm::vec3 centroid() const;
-    bool intersect(const float*, const float*, float&, float&, uint8_t&) const;
-    float d[normalsSize][2];
+    bool intersect(const float* precomputedNumerator,
+                   const float* precomputedDenominator, float& nearDist,
+                   float& farDist, uint8_t& planeIndex) const;
+    float slabs[normalsSize][2];
     const Object* object;
   };
 
@@ -46,10 +48,10 @@ struct BVH {
 
     struct QueueElement {
       const OctreeNode* node;
-      float t;
-      QueueElement(const OctreeNode* n, float tn);
+      float distance;
+      QueueElement(const OctreeNode* node, float distance);
       friend bool operator<(const QueueElement& a, const QueueElement& b) {
-        return a.t > b.t;
+        return a.distance > b.distance;
       };
     };
 
