@@ -1,7 +1,10 @@
 #include <SDL.h>
 
+#include <glm/gtx/string_cast.hpp>
+#include <iostream>
 #include "camera.h"
 
+using namespace std;
 using glm::mat4;
 using glm::vec3;
 using glm::vec4;
@@ -70,7 +73,6 @@ bool Camera::update(float dt) {
     }
     updated = true;
   }
-
   return updated;
 }
 
@@ -94,5 +96,7 @@ mat4 Camera::getTranslationMatrix() {
 }
 
 mat4 Camera::getTransformationMatrix() {
-  return getRotationMatrix() + getTranslationMatrix();
+  mat4 rot = getRotationMatrix();
+  rot[3] = -1.f * position;
+  return rot;
 }

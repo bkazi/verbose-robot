@@ -14,6 +14,7 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 BUILDDIR = build
 OBJS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%.o,$(basename $(SRCS)))
 
+
 # Binary files
 BINDIR = bin
 BINARY_RAYTRACER = $(BINDIR)/raytracer
@@ -21,13 +22,14 @@ BINARY_RASTERISER = $(BINDIR)/rasteriser
 
 # Compilation options
 CXX = icpc
-CXXFLAGS = -std=c++11 -Wall -Ofast -fopenmp -march=native -ggdb -g3 -D unix -D GLM_FORCE_SSE2 -D GLM_FORCE_ALIGNED -D textureLess $(addprefix -I, $(HDIR)) $(shell sdl2-config --cflags) $(DEPFLAGS)
+CXXFLAGS = -std=c++11 -Wall -Ofast -march=native -fopenmp -ggdb -g3 -D unix -D GLM_FORCE_SSE2 -D GLM_FORCE_ALIGNED -D textureLess $(addprefix -I, $(HDIR)) $(shell sdl2-config --cflags) $(DEPFLAGS)
 COMPILE = $(CXX) -o $@ -c $< $(CXXFLAGS)
 
 # Link Options
 LDFLAGS += $(shell sdl2-config --libs) -fopenmp
-LINK_RAYTRACER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/rasteriser.o, $^) $(LDFLAGS) $(LDLIBS)
-LINK_RASTERISER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/raytracer.o, $^) $(LDFLAGS) $(LDLIBS)
+LDLIBS = `pkg-config --libs opencv`
+LINK_RAYTRACER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/rasteriser.o $(BUILDDIR)/rasteriser_screen.o, $^) $(LDFLAGS) $(LDLIBS)
+LINK_RASTERISER = $(CXX) -o $@ $(filter-out $(BUILDDIR)/raytracer.o $(BUILDDIR)/raytracer_screen.o, $^) $(LDFLAGS) $(LDLIBS)
 
 .PHONY: all clean
 all: $(BUILDDIR) $(DEPDIR) $(BINDIR) $(BINARY_RAYTRACER) $(BINARY_RASTERISER)
