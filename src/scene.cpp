@@ -26,37 +26,23 @@ Scene::Scene() {
 Scene::Scene(vector<Object *> objects) : objects(objects) {}
 
 bool Scene::intersect(Ray ray, Intersection &intersection) {
-  Primitive *closestPrimitive = NULL;
-  float minDist = INFINITY;
   if (bvh != NULL) {
-    Object *object = bvh->intersect(ray, objects);
-
-    if (object != NULL) {
-      float minDist = INFINITY;
-
-      for (uint32_t i = 0; i < object->primitives.size(); ++i) {
-        float dist = object->primitives[i]->intersect(ray);
-        if (dist < minDist) {
-          minDist = dist;
-          closestPrimitive = object->primitives[i];
-        }
-      }
-    }
+    return bvh->intersect(ray, intersection);
   } else {
+      bool intersected = false;
+    float minDist = INFINITY;
     for (uint32_t i = 0; i < objects.size(); ++i) {
-      for (uint32_t j = 0; j < objects[i]->primitives.size(); ++j) {
-        float dist = objects[i]->primitives[j]->intersect(ray);
-        if (dist < minDist) {
-          minDist = dist;
-          closestPrimitive = objects[i]->primitives[j];
+      Intersection intersect;
+      if (objects[i]->intersect(ray, intersect)) {
+        intersected = true;
+        if (intersect.distance < minDist) {
+          intersection = intersect;
+          minDist = intersect.distance;
         }
       }
     }
+    return intersected;
   }
-  intersection.primitive = closestPrimitive;
-  intersection.distance = minDist;
-  intersection.position = ray.position + minDist * ray.direction;
-  return closestPrimitive != NULL || minDist != INFINITY;
 }
 
 void Scene::createBVH() { bvh = new BVH(objects); }

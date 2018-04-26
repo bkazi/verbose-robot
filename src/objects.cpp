@@ -46,6 +46,21 @@ float Primitive::intersect(Ray ray) { return INFINITY; }
 
 /* OBJECT CLASS IMPLEMENTATION */
 Object::Object(vector<Primitive *> primitives) : primitives(primitives){};
+bool Object::intersect(Ray ray, Intersection &intersection) const {
+  Primitive *closestPrimitive = NULL;
+  float minDist = INFINITY;
+  for (uint32_t i = 0; i < primitives.size(); ++i) {
+    float dist = primitives[i]->intersect(ray);
+    if (dist < minDist) {
+      minDist = dist;
+      closestPrimitive = primitives[i];
+    }
+  }
+  intersection.primitive = closestPrimitive;
+  intersection.distance = minDist;
+  intersection.position = ray.position + minDist * ray.direction;
+  return closestPrimitive != NULL && minDist != INFINITY;
+}
 void Object::computeBounds(const vec3 &planeNormal, float &dnear, float &dfar) {
   float d;
   for (uint32_t i = 0; i < primitives.size(); i++) {
