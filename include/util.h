@@ -10,12 +10,13 @@ struct Pixel {
   glm::vec4 homogenous;
   glm::vec4 worldPos;
   glm::vec4 normal;
+  glm::vec2 uv;
   glm::vec3 reflectance;
 
   Pixel();
   Pixel(glm::ivec2 vec);
   Pixel(glm::ivec2 vec, float zinv, glm::vec4 homogenous, glm::vec4 worldPos,
-        glm::vec4 normal, glm::vec3 reflectance);
+        glm::vec4 normal, glm::vec2 uv, glm::vec3 reflectance);
 };
 
 glm::mat4 CalcRotationMatrix(glm::vec3 rotation);

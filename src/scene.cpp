@@ -63,17 +63,25 @@ void Scene::createBVH() { bvh = new BVH(objects); }
 
 void Scene::LoadTest() { LoadTestModel(objects); }
 
+Texture *loadTexture(string dir, string path) {
+  if (path != "") {
+    return Texture::createTexture(dir + path);
+  }
+  return NULL;
+}
+
 /* Load Model into scene */
 void Scene::LoadModel(string path) {
   attrib_t attrib;
   vector<shape_t> shapes;
   vector<material_t> materials;
   string error;
+  string dir = path.substr(0, path.find_last_of('/') + 1);
 
   // NB: Lib automatically triangulises -- can be disabled, but is default true
   bool ret =
       tinyobj::LoadObj(&attrib, &shapes, &materials, &error, path.c_str(),
-                       path.substr(0, path.find_last_of('/') + 1).c_str());
+                       dir.c_str());
 
   if (!error.empty()) {
     cerr << error << endl;
@@ -137,77 +145,34 @@ void Scene::LoadModel(string path) {
       }
       index_offset += fv;
 
-      if (textured) {
-        TexturedMaterial mat;
-        mat.color =
-            vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-        mat.ambient =
-            vec3(material.ambient[0], material.ambient[1], material.ambient[2]);
-        mat.diffuse =
-            vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-        mat.specular = vec3(material.specular[0], material.specular[1],
-                            material.specular[2]);
-        mat.transmittance =
-            vec3(material.transmittance[0], material.transmittance[1],
-                 material.transmittance[2]);
-        mat.emission = vec3(material.emission[0], material.emission[1],
-                            material.emission[2]);
-        mat.shininess = material.shininess;
-        mat.refractiveIndex = material.ior;
-        mat.dissolve = material.dissolve;
+      Material mat;
+      mat.color =
+          vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
+      mat.ambient =
+          vec3(material.ambient[0], material.ambient[1], material.ambient[2]);
+      mat.diffuse =
+          vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
+      mat.specular = vec3(material.specular[0], material.specular[1],
+                          material.specular[2]);
+      mat.transmittance =
+          vec3(material.transmittance[0], material.transmittance[1],
+               material.transmittance[2]);
+      mat.emission = vec3(material.emission[0], material.emission[1],
+                          material.emission[2]);
+      mat.shininess = material.shininess;
+      mat.refractiveIndex = material.ior;
+      mat.dissolve = material.dissolve;
+      mat.ambientTexture = loadTexture(dir, material.ambient_texname);
+      mat.diffuseTexture = loadTexture(dir, material.diffuse_texname);
+      mat.specularTexture = loadTexture(dir, material.specular_texname);
+      mat.specularHighlightTexture = loadTexture(dir, material.specular_highlight_texname);
+      mat.bumpTexture = loadTexture(dir, material.bump_texname);
+      mat.displacementTexture = loadTexture(dir, material.displacement_texname);
+      mat.alphaTexture = loadTexture(dir, material.alpha_texname);
+      mat.reflectionTexture = loadTexture(dir, material.reflection_texname);
 
-        if (material.ambient_texname != "") {
-          mat.ambientTexture = Texture::createTexture(material.ambient_texname);
-        }
-        if (material.diffuse_texname != "") {
-          mat.diffuseTexture = Texture::createTexture(material.diffuse_texname);
-        }
-        if (material.specular_texname != "") {
-          mat.specularTexture =
-              Texture::createTexture(material.specular_texname);
-        }
-        if (material.specular_highlight_texname != "") {
-          mat.specularHighlightTexture =
-              Texture::createTexture(material.specular_highlight_texname);
-        }
-        if (material.bump_texname != "") {
-          mat.bumpTexture = Texture::createTexture(material.bump_texname);
-        }
-        if (material.displacement_texname != "") {
-          mat.displacementTexture =
-              Texture::createTexture(material.displacement_texname);
-        }
-        if (material.alpha_texname != "") {
-          mat.alphaTexture = Texture::createTexture(material.alpha_texname);
-        }
-        if (material.reflection_texname != "") {
-          mat.reflectionTexture =
-              Texture::createTexture(material.reflection_texname);
-        }
-
-        primitives.push_back(
-            new Triangle(vertices[0], vertices[2], vertices[1], mat));
-      } else {
-        Material mat;
-        mat.color =
-            vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-        mat.ambient =
-            vec3(material.ambient[0], material.ambient[1], material.ambient[2]);
-        mat.diffuse =
-            vec3(material.diffuse[0], material.diffuse[1], material.diffuse[2]);
-        mat.specular = vec3(material.specular[0], material.specular[1],
-                            material.specular[2]);
-        mat.transmittance =
-            vec3(material.transmittance[0], material.transmittance[1],
-                 material.transmittance[2]);
-        mat.emission = vec3(material.emission[0], material.emission[1],
-                            material.emission[2]);
-        mat.shininess = material.shininess;
-        mat.refractiveIndex = material.ior;
-        mat.dissolve = material.dissolve;
-        primitives.push_back(
-            new Triangle(vertices[0], vertices[2], vertices[1], mat));
-      }
+      primitives.push_back(
+          new Triangle(vertices[0], vertices[2], vertices[1], mat));
     }
 
     objects.push_back(new Object(primitives));
