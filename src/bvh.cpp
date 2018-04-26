@@ -237,34 +237,31 @@ BVH::BVH(vector<Object*> scene) {
   extentsList.reserve(scene.size());
   for (uint32_t i = 0; i < scene.size(); ++i) {
     for (uint32_t ii = 0; ii < scene[i]->primitives.size(); ++ii) {
+      Triangle* tri = dynamic_cast<Triangle*>(scene[i]->primitives[ii]);
+      Sphere* sph = dynamic_cast<Sphere*>(scene[i]->primitives[ii]);
       for (uint8_t j = 0; j < normalsSize; ++j) {
-        Triangle* tri;
-        Sphere* sph;
-        if ((tri = dynamic_cast<Triangle*>(scene[i]->primitives[ii]))) {
-          float v0d =
-              dot(planeSetNormals[j],
-                  vec3(tri->v0.position) + (planeSetNormals[i] * 1e-4f));
+        if (tri != nullptr) {
+          float v0d = dot(planeSetNormals[j], vec3(tri->v0.position) +
+                                                  (planeSetNormals[i] * 1e-4f));
           if (v0d < extentsList[i].slabs[j][0])
             extentsList[i].slabs[j][0] = v0d;
           if (v0d > extentsList[i].slabs[j][1])
             extentsList[i].slabs[j][1] = v0d;
 
-          float v1d =
-              dot(planeSetNormals[j],
-                  vec3(tri->v1.position) + (planeSetNormals[i] * 1e-4f));
+          float v1d = dot(planeSetNormals[j], vec3(tri->v1.position) +
+                                                  (planeSetNormals[i] * 1e-4f));
           if (v1d < extentsList[i].slabs[j][0])
             extentsList[i].slabs[j][0] = v1d;
           if (v1d > extentsList[i].slabs[j][1])
             extentsList[i].slabs[j][1] = v1d;
 
-          float v2d =
-              dot(planeSetNormals[j],
-                  vec3(tri->v2.position) + (planeSetNormals[i] * 1e-4f));
+          float v2d = dot(planeSetNormals[j], vec3(tri->v2.position) +
+                                                  (planeSetNormals[i] * 1e-4f));
           if (v2d < extentsList[i].slabs[j][0])
             extentsList[i].slabs[j][0] = v2d;
           if (v2d > extentsList[i].slabs[j][1])
             extentsList[i].slabs[j][1] = v2d;
-        } else if ((sph = dynamic_cast<Sphere*>(scene[i]->primitives[ii]))) {
+        } else if (sph != nullptr) {
           float p1 = dot(planeSetNormals[j],
                          vec3(sph->c) + (planeSetNormals[j] * sph->radius));
           if (p1 < extentsList[i].slabs[j][0]) extentsList[i].slabs[j][0] = p1;
