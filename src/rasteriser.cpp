@@ -4,15 +4,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <opencv/cv.hpp>
-// #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <SDL.h>
 
-#include "light.h"
-#include "screen.h"
-#include "scene.h"
-#include "util.h"
 #include "camera.h"
+#include "light.h"
 #include "post_processing.h"
+#include "scene.h"
+#include "screen.h"
+#include "util.h"
 
 using namespace cv;
 using namespace std;
@@ -36,7 +36,8 @@ using glm::vec4;
 void Update(Camera *camera);
 void Draw(screen *screen, Camera *camera);
 void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat);
-void PixelShader(screen *screen, const Pixel &p, Camera *camera);
+void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
+                 Camera *camera);
 void Interpolate(Pixel a, Pixel b, vector<Pixel> &result);
 void Interpolate(ivec2 a, ivec2 b, vector<ivec2> &result);
 void DrawLineSDL(SDL_Surface *surface, Pixel a, Pixel b, vec3 color);
@@ -45,7 +46,8 @@ void ComputePolygonRows(const vector<Pixel> &vertexPixels,
                         vector<Pixel> &leftPixels, vector<Pixel> &rightPixels);
 void DrawRows(const vector<Pixel> &leftPixels,
               const vector<Pixel> &rightPixels);
-void DrawPolygon(screen *screen, const vector<Vertex> &vertices, Camera *camera);
+void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
+                 const Primitive *primitive, Camera *camera);
 void ClipPolygon(vector<Pixel> &vertexPixels, int height, int width);
 void DrawShadowMap(Light &light);
 void FXAA(screen *s);
@@ -69,20 +71,15 @@ int main(int argc, char *argv[]) {
   //     0.001,
   //     0.001,
   // };
-  Camera *camera = new Camera(
-    vec4(0, 0, -1.5001, 1),
-    vec3(0, 0, 0),
-    SCREEN_HEIGHT,
-    0.001,
-    0.001
-  );
-  
+  Camera *camera = new Camera(vec4(0, 0, -1.5001, 1), vec3(0, 0, 0),
+                              SCREEN_HEIGHT, 0.001, 0.001);
 
   light.position = lightPos;
   light.power = lightPower;
   light.needsUpdate = true;
 
-  screen *screen = InitializeSDL("rasteriser", SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
+  screen *screen =
+      InitializeSDL("rasteriser", SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   if (argc >= 2) {
     const string path = argv[1];
@@ -95,15 +92,16 @@ int main(int argc, char *argv[]) {
     Update(camera);
     DrawShadowMap(light);
     Draw(screen, camera);
-    // for (int y = 0; y < LIGHTMAP_SIZE; y++) {
-    //   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
-    //     PutPixelSDL(screen, false, x, y, vec3(light.depthBuffer[2][y * LIGHTMAP_SIZE
-    //     + x]), 100.f);
-    //   }
-    // }
-    #ifdef ENABLE_FXAA
+// for (int y = 0; y < LIGHTMAP_SIZE; y++) {
+//   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
+//     PutPixelSDL(screen, false, x, y, vec3(light.depthBuffer[2][y *
+//     LIGHTMAP_SIZE
+//     + x]), 100.f);
+//   }
+// }
+#ifdef ENABLE_FXAA
     FXAA(screen);
-    #endif
+#endif
     SDL_Renderframe(screen);
   }
 
@@ -123,12 +121,9 @@ void Draw(screen *screen, Camera *camera) {
     for (uint32_t j = 0; j < scene->objects[i]->primitives.size(); ++j) {
       Triangle *tri;
       if ((tri = dynamic_cast<Triangle *>(scene->objects[i]->primitives[j]))) {
-        vector<Vertex> vertices(
-            {Vertex(tri->v0.position, tri->v0.normal, tri->material.color),
-             Vertex(tri->v1.position, tri->v1.normal, tri->material.color),
-             Vertex(tri->v2.position, tri->v2.normal, tri->material.color)});
+        vector<Vertex> vertices({tri->v0, tri->v1, tri->v2});
 
-        DrawPolygon(screen, vertices, camera);
+        DrawPolygon(screen, vertices, tri, camera);
       }
     }
   }
@@ -153,13 +148,22 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
   p.zinv = 1.f / (transMat * v.position).z;
   p.worldPos = v.position;
   p.normal = glm::normalize(transMat * v.normal);
+  p.uv = v.uv;
   p.reflectance = v.color;
 }
 
-void PixelShader(screen *screen, const Pixel &p, Camera *camera) {
+void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
+                 Camera *camera) {
+  vec3 color;
+  if (primitive->material.diffuseTexture != NULL) {
+    color = primitive->material.diffuseTexture->sample(p.uv);
+  } else {
+    color = p.reflectance;
+  }
+
   vec3 D;
   if (light.test(p.worldPos)) {
-    mat4 transMat =camera->getTransformationMatrix();
+    mat4 transMat = camera->getTransformationMatrix();
     // TransformationMatrix(camera->rotation, camera->position, transMat);
     vec4 r = transMat * (light.position - p.worldPos);
     float rLen = glm::length(r);
@@ -169,7 +173,7 @@ void PixelShader(screen *screen, const Pixel &p, Camera *camera) {
   } else {
     D = vec3(0.f);
   }
-  vec3 illumination = p.reflectance * (D + indirectLightPowerPerArea);
+  vec3 illumination = color * (D + indirectLightPowerPerArea);
   PutPixelSDL(screen, p.x, p.y, illumination, p.zinv);
 }
 
@@ -199,6 +203,11 @@ void InterpolateBarycentric(vector<Pixel> vertexPixels, float w[3], Pixel &p) {
                       w[1] * vertexPixels[1].normal * vertexPixels[1].zinv +
                       w[2] * vertexPixels[2].normal * vertexPixels[2].zinv) /
                      p.zinv);
+
+  p.uv = (w[0] * vertexPixels[0].uv * vertexPixels[0].zinv +
+                         w[1] * vertexPixels[1].uv * vertexPixels[1].zinv +
+                         w[2] * vertexPixels[2].uv * vertexPixels[2].zinv) /
+                        p.zinv;
 }
 
 Pixel ClipEdge(Pixel i, Pixel j, vector<Pixel> vertexPixels, float a) {
@@ -345,7 +354,8 @@ void GetBounds(vector<Pixel> vertexPixels, int &minX, int &minY, int &maxX,
   }
 }
 
-void FillTriangles(screen *screen, vector<Pixel> vertexPixels, Camera *camera) {
+void FillTriangles(screen *screen, vector<Pixel> vertexPixels,
+                   const Primitive *primitive, Camera *camera) {
   assert(vertexPixels.size() == 3);
 
   int minX, minY, maxX, maxY;
@@ -376,14 +386,14 @@ void FillTriangles(screen *screen, vector<Pixel> vertexPixels, Camera *camera) {
       }
       if (inside == true) {
         InterpolateBarycentric(vertexPixels, w, p);
-        PixelShader(screen, p, camera);
+        PixelShader(screen, p, primitive, camera);
       }
     }
   }
 }
 
 void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
-                 Camera *camera) {
+                 const Primitive *primitive, Camera *camera) {
   int V = vertices.size();
   vector<Pixel> vertexPixels(V);
 
@@ -416,10 +426,10 @@ void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
       verts.push_back(vertexPixels[0]);
       verts.push_back(vertexPixels[i]);
       verts.push_back(vertexPixels[i + 1]);
-      FillTriangles(screen, verts, camera);
+      FillTriangles(screen, verts, primitive, camera);
     }
   } else {
-    FillTriangles(screen, vertexPixels, camera);
+    FillTriangles(screen, vertexPixels, primitive, camera);
   }
 }
 
@@ -428,7 +438,8 @@ void DrawShadowMap(Light &light) {
     screen *s = createScreen("rasteriser", LIGHTMAP_SIZE, LIGHTMAP_SIZE);
 
     for (int idx = 0; idx < 6; idx++) {
-      Camera *camera = new Camera(lightPos, light.rot[idx], LIGHTMAP_SIZE, 0, 0);
+      Camera *camera =
+          new Camera(lightPos, light.rot[idx], LIGHTMAP_SIZE, 0, 0);
 
       Draw(s, camera);
 
@@ -445,7 +456,8 @@ void FXAA(screen *s) {
   findEdges(depthBuffer);
   double min, max;
   minMaxLoc(depthBuffer, &min, &max);
-  depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0/(max-min), -255.0*min/(max-min));
+  depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0 / (max - min),
+                        -255.0 * min / (max - min));
   Mat blurredImage;
 
   GaussianBlur(frameBuffer, blurredImage, Size(3, 3), 0, 0);

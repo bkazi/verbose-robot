@@ -24,6 +24,7 @@ struct Texture {
   static Texture *createTexture(std::string);
   cv::Mat image;
   Texture(cv::Mat image);
+  glm::vec3 sample(glm::vec2);
   static std::map<std::string, Texture *> textures;
 };
 
@@ -47,9 +48,6 @@ struct Material {
   float shininess;
   float refractiveIndex;
   float dissolve;
-};
-
-struct TexturedMaterial : Material {
   Texture *ambientTexture;
   Texture *diffuseTexture;
   Texture *specularTexture;

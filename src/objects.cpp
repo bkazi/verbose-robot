@@ -4,8 +4,11 @@
 using namespace std;
 
 using cv::Mat;
+using cv::Vec3b;
+using cv::Point;
 using glm::determinant;
 using glm::dot;
+using glm::clamp;
 using glm::mat3;
 using glm::vec2;
 using glm::vec3;
@@ -15,6 +18,7 @@ using glm::vec4;
 std::map<std::string, Texture *> Texture::textures;
 Texture::Texture(Mat image) : image(image){};
 Texture *Texture::createTexture(string path) {
+  cout << "Looking for texture in: " << path << endl;
   if (Texture::textures.find(path) != Texture::textures.end()) {
     return Texture::textures[path];
   } else {
@@ -24,6 +28,16 @@ Texture *Texture::createTexture(string path) {
     Texture::textures[path] = texture;
     return texture;
   }
+}
+vec3 Texture::sample(vec2 uv) {
+  int u = round(clamp(uv.x * image.cols, 0.f, (float) image.cols));
+  int v = round(clamp(uv.y * image.rows, 0.f, (float) image.rows));
+
+  Vec3b color = image.at<Vec3b>(Point(u, v));
+  float b = clamp((float)color[0] / 255.f, 0.f, 1.f);
+  float g = clamp((float)color[1] / 255.f, 0.f, 1.f);
+  float r = clamp((float)color[2] / 255.f, 0.f, 1.f);
+  return vec3(r, g, b);
 }
 
 /* VERTEX IMPLEMENTATION */
@@ -82,9 +96,12 @@ void Object::computeBounds(const vec3 &planeNormal, float &dnear, float &dfar) {
 }
 
 /* TRIANGLE CLASS IMPLEMENTATION */
-Triangle::Triangle(Vertex v0, Vertex v1, Vertex v2, Material material)
-    : Primitive(material), v0(v0), v1(v1), v2(v2) {
+Triangle::Triangle(Vertex vertex0, Vertex vertex1, Vertex vertex2, Material material)
+    : Primitive(material), v0(vertex0), v1(vertex1), v2(vertex2) {
   Triangle::ComputeNormal();
+  v0.color = material.color;
+  v1.color = material.color;
+  v2.color = material.color;
 }
 vec4 Triangle::getNormal(const vec4 &p) { return normal; }
 vec4 Triangle::randomPoint() {
