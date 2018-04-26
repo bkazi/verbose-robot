@@ -312,7 +312,7 @@ bool BVH::intersect(Ray ray, Intersection& intersection) const {
     const Octree::OctreeNode* node = queue.top().node;
     queue.pop();
     if (node->isLeaf) {
-      for (const auto& e : node->nodeExtentsList) {
+      for (const auto& extent : node->nodeExtentsList) {
         Intersection i;
         if (e->object->intersect(ray, i)) {
           if (i.distance < minDist) {
