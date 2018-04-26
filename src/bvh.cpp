@@ -96,7 +96,6 @@ bool BVH::Extents::intersect(const float* precomputedNumerator,
                              float& tFar, uint8_t& planeIndex) const {
   for (uint8_t i = 0; i < normalsSize; ++i) {
     float tNearExtents =
-#include <glm/gtx/string_cast.hpp>
         (slabs[i][0] - precomputedNumerator[i]) / precomputedDenominator[i];
     float tFarExtents =
         (slabs[i][1] - precomputedNumerator[i]) / precomputedDenominator[i];
@@ -203,8 +202,8 @@ void BVH::Octree::insert(OctreeNode*& node, const Extents* extents,
 
 void BVH::Octree::build(OctreeNode*& node, const BBox& bbox) {
   if (node->isLeaf) {
-    for (const auto& e : node->nodeExtentsList) {
-      node->nodeExtents.extendBy(*e);
+    for (const auto& extent : node->nodeExtentsList) {
+      node->nodeExtents.extendBy(*extent);
     }
   } else {
     for (uint8_t i = 0; i < 8; ++i) {
@@ -242,19 +241,25 @@ BVH::BVH(vector<Object*> scene) {
         Triangle* tri;
         Sphere* sph;
         if ((tri = dynamic_cast<Triangle*>(scene[i]->primitives[ii]))) {
-          float v0d = dot(planeSetNormals[j], vec3(tri->v0.position));
+          float v0d =
+              dot(planeSetNormals[j],
+                  vec3(tri->v0.position) + (planeSetNormals[i] * 1e-4f));
           if (v0d < extentsList[i].slabs[j][0])
             extentsList[i].slabs[j][0] = v0d;
           if (v0d > extentsList[i].slabs[j][1])
             extentsList[i].slabs[j][1] = v0d;
 
-          float v1d = dot(planeSetNormals[j], vec3(tri->v1.position));
+          float v1d =
+              dot(planeSetNormals[j],
+                  vec3(tri->v1.position) + (planeSetNormals[i] * 1e-4f));
           if (v1d < extentsList[i].slabs[j][0])
             extentsList[i].slabs[j][0] = v1d;
           if (v1d > extentsList[i].slabs[j][1])
             extentsList[i].slabs[j][1] = v1d;
 
-          float v2d = dot(planeSetNormals[j], vec3(tri->v2.position));
+          float v2d =
+              dot(planeSetNormals[j],
+                  vec3(tri->v2.position) + (planeSetNormals[i] * 1e-4f));
           if (v2d < extentsList[i].slabs[j][0])
             extentsList[i].slabs[j][0] = v2d;
           if (v2d > extentsList[i].slabs[j][1])
