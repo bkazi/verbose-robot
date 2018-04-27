@@ -38,7 +38,15 @@ struct Material {
         emission(glm::vec3(0)),
         shininess(1.f),
         refractiveIndex(1.f),
-        dissolve(0.f) {}
+        dissolve(0.f),
+        ambientTexture(nullptr),
+        diffuseTexture(nullptr),
+        specularTexture(nullptr),
+        specularHighlightTexture(nullptr),
+        bumpTexture(nullptr),
+        displacementTexture(nullptr),
+        alphaTexture(nullptr),
+        reflectionTexture(nullptr) {}
   glm::vec3 color;
   glm::vec3 ambient;
   glm::vec3 diffuse;

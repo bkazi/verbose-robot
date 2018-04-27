@@ -4,11 +4,11 @@
 using namespace std;
 
 using cv::Mat;
-using cv::Vec3b;
 using cv::Point;
+using cv::Vec3b;
+using glm::clamp;
 using glm::determinant;
 using glm::dot;
-using glm::clamp;
 using glm::mat3;
 using glm::vec2;
 using glm::vec3;
@@ -30,8 +30,8 @@ Texture *Texture::createTexture(string path) {
   }
 }
 vec3 Texture::sample(vec2 uv) {
-  int u = round(clamp(uv.x * image.cols, 0.f, (float) image.cols));
-  int v = round(clamp(uv.y * image.rows, 0.f, (float) image.rows));
+  int u = round(clamp(uv.x * image.cols, 0.f, (float)image.cols));
+  int v = round(clamp(uv.y * image.rows, 0.f, (float)image.rows));
 
   Vec3b color = image.at<Vec3b>(Point(u, v));
   float b = clamp((float)color[0] / 255.f, 0.f, 1.f);
@@ -42,9 +42,10 @@ vec3 Texture::sample(vec2 uv) {
 
 /* VERTEX IMPLEMENTATION */
 Vertex::Vertex(){};
-Vertex::Vertex(vec4 position) : position(position){};
+Vertex::Vertex(vec4 position)
+    : position(position), normal(vec4(0)), uv(vec2(0)), color(vec3(0)){};
 Vertex::Vertex(vec4 position, vec4 normal, vec3 color)
-    : position(position), normal(normal), color(color){};
+    : position(position), normal(normal), uv(vec2(0)), color(color){};
 Vertex::Vertex(vec4 position, vec4 normal, vec2 uv, vec3 color)
     : position(position), normal(normal), uv(uv), color(color){};
 
@@ -111,12 +112,18 @@ void Object::computeBounds(const vec3 &planeNormal, float &dnear, float &dfar) {
 }
 
 /* TRIANGLE CLASS IMPLEMENTATION */
-Triangle::Triangle(Vertex vertex0, Vertex vertex1, Vertex vertex2, Material material)
+Triangle::Triangle(Vertex vertex0, Vertex vertex1, Vertex vertex2,
+                   Material material)
     : Primitive(material), v0(vertex0), v1(vertex1), v2(vertex2) {
   Triangle::ComputeNormal();
   v0.color = material.color;
   v1.color = material.color;
   v2.color = material.color;
+  if (v0.normal == vec4(0) || v1.normal == vec4(0) || v2.normal == vec4(0)) {
+    v0.normal = normal;
+    v1.normal = normal;
+    v2.normal = normal;
+  }
 }
 vec4 Triangle::getNormal(const vec4 &p) { return normal; }
 vec4 Triangle::randomPoint() {
