@@ -1,11 +1,11 @@
+#include <SDL.h>
 #include <assert.h>
 #include <stdint.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <opencv/cv.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <SDL.h>
 
 #include "camera.h"
 #include "light.h"
@@ -131,6 +131,7 @@ void Update(Camera *camera) {
   cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
+  light.update(dt);
   camera->update(dt);
 }
 
@@ -144,6 +145,14 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
   p.reflectance = v.color;
 }
 
+void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
+  if (fabs(N.x) > fabs(N.y))
+    Nt = glm::normalize(vec3(N.z, 0, -N.x));
+  else
+    Nt = glm::normalize(vec3(0, -N.z, N.y));
+  Nb = glm::cross(N, Nt);
+}
+
 void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
                  Camera *camera) {
   vec3 color;
@@ -153,11 +162,22 @@ void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
     color = p.reflectance;
   }
 
+  vec4 normal;
+  if (primitive->material.bumpTexture != NULL) {
+    vec3 Nt, Nb;
+    vec3 sample =
+        (2.f * primitive->material.diffuseTexture->sample(p.uv)) - 1.f;
+    createCoordinateSystem(vec3(p.normal), Nt, Nb);
+    normal = vec4(mat3(Nb, vec3(p.normal), Nt) * sample, 0.f);
+  } else {
+    normal = p.normal;
+  }
+
   vec3 D;
   if (light.test(p.worldPos)) {
     mat4 transMat = camera->getTransformationMatrix();
     vec4 dir = glm::normalize(transMat * light.direction);
-    D = light.power * max(glm::dot(dir, p.normal), 0.f);
+    D = light.power * max(glm::dot(dir, normal), 0.f);
   } else {
     D = vec3(0.f);
   }
@@ -193,9 +213,9 @@ void InterpolateBarycentric(vector<Pixel> vertexPixels, float w[3], Pixel &p) {
                      p.zinv);
 
   p.uv = (w[0] * vertexPixels[0].uv * vertexPixels[0].zinv +
-                         w[1] * vertexPixels[1].uv * vertexPixels[1].zinv +
-                         w[2] * vertexPixels[2].uv * vertexPixels[2].zinv) /
-                        p.zinv;
+          w[1] * vertexPixels[1].uv * vertexPixels[1].zinv +
+          w[2] * vertexPixels[2].uv * vertexPixels[2].zinv) /
+         p.zinv;
 }
 
 Pixel ClipEdge(Pixel i, Pixel j, vector<Pixel> vertexPixels, float a) {

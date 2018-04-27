@@ -85,6 +85,7 @@ struct Object {
  public:
   Object(std::vector<Primitive *> primitives);
   void computeBounds(const glm::vec3 &planeNormal, float &dnear, float &dfar);
+  bool intersect(Ray ray, Intersection &intersection) const;
   std::vector<Primitive *> primitives;
 };
 

@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <SDL.h>
 
 #include "util.h"
 
@@ -32,4 +33,42 @@ int Light::test(vec4 vertexWorldPos) {
            depthBuffer[p.y * LIGHTMAP_SIZE + p.x];
   }
   return true;
+}
+
+bool Light::update(float dt) {
+  const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+  bool updated = false;
+  if (keystate[SDL_SCANCODE_UP]) {
+    position.z += movementSpeed * dt;
+    updated = true;
+  }
+
+  if (keystate[SDL_SCANCODE_DOWN]) {
+    position.z -= movementSpeed * dt;
+    updated = true;
+  }
+
+  if (keystate[SDL_SCANCODE_LEFT]) {
+    position.x -= movementSpeed * dt;
+
+    updated = true;
+  }
+
+  if (keystate[SDL_SCANCODE_RIGHT]) {
+    position.x += movementSpeed * dt;
+    updated = true;
+  }
+
+  if (keystate[SDL_SCANCODE_PAGEUP]) {
+    position.y += movementSpeed * dt;
+    updated = true;
+  }
+
+  if (keystate[SDL_SCANCODE_PAGEDOWN]) {
+    position.y -= movementSpeed * dt;
+    updated = true;
+  }
+
+  needsUpdate = updated;
+  return updated;
 }

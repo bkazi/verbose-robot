@@ -14,6 +14,10 @@ struct Light {
 
   void transformationMatrix(glm::mat4 &transMat);
   int test(glm::vec4 vertexWorldPos);
+  bool update(float dt);
+
+ private:
+  float movementSpeed = 0.001;
 };
 
 #endif
