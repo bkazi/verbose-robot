@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
   }
 
   while (NoQuitMessageSDL()) {
-    Update(camera);
     DrawShadowMap(light);
+    Update(camera);
     Draw(screen, camera);
     // for (int y = 0; y < LIGHTMAP_SIZE; y++) {
     //   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
@@ -456,7 +456,7 @@ void DrawShadowMap(Light &light) {
     depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0 / (max - min),
                           -255.0 * min / (max - min));
     Mat blurredDepth;
-    GaussianBlur(depthBuffer, blurredDepth, Size(27, 27), 0, 0);
+    GaussianBlur(depthBuffer, blurredDepth, Size(15, 15), 0, 0);
     blurredDepth.convertTo(blurredDepth, CV_32F, (max - min) / 255.0, 255.0 * min / (max - min));
     #pragma omp parallel for collapse(2)
     for (int x = 0; x < s->width; x++) {

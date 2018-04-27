@@ -24,7 +24,7 @@ void findEdges(Mat &src_mat) {
   Sobel(src_mat, grad_y, CV_16S, 0, 1, 3);
   convertScaleAbs(grad_y, abs_grad_y);
 
-  addWeighted(abs_grad_x, 0.8, abs_grad_y, 0.8, 0, src_mat);
+  addWeighted(abs_grad_x, 0.6, abs_grad_y, 0.6, 0, src_mat);
 
   threshold(src_mat, src_mat, 100, 255, CV_THRESH_BINARY_INV);
 }

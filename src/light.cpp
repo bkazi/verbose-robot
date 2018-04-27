@@ -29,7 +29,7 @@ int Light::test(vec4 vertexWorldPos) {
   p.x = int(LIGHTMAP_SIZE * v.x * p.zinv) + (LIGHTMAP_SIZE / 2);
   p.y = int(LIGHTMAP_SIZE * v.y * p.zinv) + (LIGHTMAP_SIZE / 2);
   if (p.x >= 0 && p.x < LIGHTMAP_SIZE && p.y >= 0 && p.y < LIGHTMAP_SIZE) {
-    return p.zinv + 2e-4f >=
+    return p.zinv + 1e-4f >=
            depthBuffer[p.y * LIGHTMAP_SIZE + p.x];
   }
   return true;

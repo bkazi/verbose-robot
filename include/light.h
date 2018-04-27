@@ -3,7 +3,7 @@
 
 #include <glm/glm.hpp>
 
-#define LIGHTMAP_SIZE 1024
+#define LIGHTMAP_SIZE 256
 
 struct Light {
   glm::vec4 position;
