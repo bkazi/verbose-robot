@@ -269,8 +269,8 @@ BVH::BVH(vector<Object*> scene) {
 
           float p2 = dot(planeSetNormals[j],
                          vec3(sph->c) - (planeSetNormals[j] * sph->radius));
-          if (p1 < extentsList[i].slabs[j][0]) extentsList[i].slabs[j][0] = p2;
-          if (p1 > extentsList[i].slabs[j][1]) extentsList[i].slabs[j][1] = p2;
+          if (p2 < extentsList[i].slabs[j][0]) extentsList[i].slabs[j][0] = p2;
+          if (p2 > extentsList[i].slabs[j][1]) extentsList[i].slabs[j][1] = p2;
         }
       }
     }
