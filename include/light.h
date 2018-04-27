@@ -18,6 +18,10 @@ struct Light {
   int getCubeIndex(glm::vec4 pos);
   void transformationMatrix(glm::mat4 &transMat, glm::vec3 r);
   int test(glm::vec4 vertexWorldPos);
+  bool update(float dt);
+
+ private:
+  float movementSpeed = 0.001;
 };
 
 #endif

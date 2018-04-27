@@ -139,6 +139,7 @@ void Update(Camera *camera) {
   cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
+  light.update(dt);
   camera->update(dt);
 }
 
