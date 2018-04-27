@@ -17,8 +17,8 @@
 #include "TestModel.h"
 #include "camera.h"
 #include "objects.h"
-#include "screen.h"
 #include "scene.h"
+#include "screen.h"
 
 using namespace std;
 using glm::ivec2;
@@ -34,6 +34,7 @@ using glm::vec4;
 #define MIN_BOUNCES 5
 #define MAX_BOUNCES 10
 // #define AA
+#define BVH
 #define LIVE
 
 float m = numeric_limits<float>::max();
@@ -64,7 +65,8 @@ Scene *scene;
 Camera *camera;
 
 int main(int argc, char *argv[]) {
-  screen *screen = InitializeSDL("raytracer", SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
+  screen *screen =
+      InitializeSDL("raytracer", SCREEN_WIDTH, SCREEN_HEIGHT, FULLSCREEN_MODE);
 
   scene = new Scene();
   if (argc >= 2) {
@@ -74,7 +76,9 @@ int main(int argc, char *argv[]) {
     scene->LoadTest();
   }
 
-  // scene->createBVH();
+#ifdef BVH
+  scene->createBVH();
+#endif
 
   camera = new Camera(vec4(0, 0, -3.001, 1), vec3(0, 0, 0), SCREEN_HEIGHT,
                       0.001, 0.001);
@@ -167,8 +171,8 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
       return intersection.primitive->material.emission;
     }
     if ((bounce > MIN_BOUNCES &&
-        (bounce > MAX_BOUNCES ||
-         U > max3(intersection.primitive->material.color)))) {
+         (bounce > MAX_BOUNCES ||
+          U > max3(intersection.primitive->material.color)))) {
       // terminate
       return vec3(0);
     }
@@ -190,8 +194,7 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
 
           ray.position = hitPos + lightDir * 1e-4f;
           ray.direction = lightDir;
-          if (scene->intersect(ray,
-                               lightIntersection)) {
+          if (scene->intersect(ray, lightIntersection)) {
             if (light == lightIntersection.primitive) {
               vec4 reflected = glm::reflect(lightDir, normal);
               directSpecularLight +=
@@ -270,10 +273,9 @@ vec3 Light(const vec4 start, const vec4 dir, float currIor, int bounce) {
     indirectLight = glm::clamp(indirectLight, vec3(0), vec3(10));
 
     return intersection.primitive->material.color *
-               (intersection.primitive->material.diffuse * directDiffuseLight +
-                intersection.primitive->material.ambient * indirectLight +
-                intersection.primitive->material.specular *
-                    directSpecularLight);
+           (intersection.primitive->material.diffuse * directDiffuseLight +
+            intersection.primitive->material.ambient * indirectLight +
+            intersection.primitive->material.specular * directSpecularLight);
   }
   return vec3(0);
 }
