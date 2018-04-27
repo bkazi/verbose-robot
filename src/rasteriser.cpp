@@ -23,8 +23,8 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 1024
+#define SCREEN_WIDTH 512
+#define SCREEN_HEIGHT 512
 #define FULLSCREEN_MODE false
 #define NEAR_PLANE 0.1
 #define FAR_PLANE 5
@@ -56,15 +56,15 @@ void FXAA(screen *s);
 Scene *scene;
 Light light;
 
-vec4 lightPos(0, -0.5, -0.7, 1);
+vec4 lightPos(0.55, -0.13, -9.13, 1);
 vec4 lightDir(-2.0, 7.2, 0.9, 0);
 vec3 lightPower = 0.5f * vec3(1, 1, 1);
-vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
+vec3 indirectLightPowerPerArea = 0.4f * vec3(1, 1, 1);
 
 int main(int argc, char *argv[]) {
   scene = new Scene();
 
-  Camera *camera = new Camera(vec4(0, 0, -3, 1), vec3(0, M_PI_2, M_PI),
+  Camera *camera = new Camera(vec4(0.5, 0, -7.7, 1), vec3(-2.5, 0, 0),
                               SCREEN_HEIGHT, 0.001, 0.001);
 
   light.position = lightPos;
@@ -83,13 +83,12 @@ int main(int argc, char *argv[]) {
   }
 
   while (NoQuitMessageSDL()) {
-    Update(camera);
     DrawShadowMap(light);
+    Update(camera);
     Draw(screen, camera);
     // for (int y = 0; y < LIGHTMAP_SIZE; y++) {
     //   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
-    //     PutPixelSDL(screen, x, y, vec3(light.depthBuffer[y * LIGHTMAP_SIZE +
-    //     x]), 100.f);
+    //     PutPixelSDL(screen, x, y, vec3(light.depthBuffer[y * LIGHTMAP_SIZE + x]), 100.f);
     //   }
     // }
 #ifdef ENABLE_FXAA
@@ -113,9 +112,9 @@ void Draw(screen *screen, Camera *camera) {
   for (uint32_t i = 0; i < scene->objects.size(); ++i) {
     for (uint32_t j = 0; j < scene->objects[i]->primitives.size(); ++j) {
       Triangle *tri;
-      if ((tri = dynamic_cast<Triangle *>(scene->objects[i]->primitives[j])) !=
-          nullptr) {
+      if ((tri = dynamic_cast<Triangle *>(scene->objects[i]->primitives[j]))) {
         vector<Vertex> vertices({tri->v0, tri->v1, tri->v2});
+
         DrawPolygon(screen, vertices, tri, camera);
       }
     }
@@ -157,13 +156,14 @@ void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
 void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
                  Camera *camera) {
   vec3 color;
-  if (primitive->material.diffuseTexture != nullptr) {
+  if (primitive->material.diffuseTexture != NULL) {
     color = primitive->material.diffuseTexture->sample(p.uv);
   } else {
     color = p.reflectance;
   }
+
   vec4 normal;
-  if (primitive->material.bumpTexture != nullptr) {
+  if (primitive->material.bumpTexture != NULL) {
     vec3 Nt, Nb;
     vec3 sample =
         (2.f * primitive->material.diffuseTexture->sample(p.uv)) - 1.f;
@@ -379,6 +379,7 @@ void FillTriangles(screen *screen, vector<Pixel> vertexPixels,
 
   float areaDen =
       1 / edgeFunction(vertexPixels[2], vertexPixels[1], vertexPixels[0]);
+
 #pragma omp simd
   for (int x = minX; x <= maxX; x++) {
     for (int y = minY; y <= maxY; y++) {
@@ -427,7 +428,6 @@ void DrawPolygon(screen *screen, const vector<Vertex> &vertices,
   if (vertexPixels.size() < 3) {
     return;
   }
-
   if (vertexPixels.size() >= 4) {
     for (int i = 1; i < vertexPixels.size() - 1; i++) {
       vector<Pixel> verts;
@@ -456,10 +456,9 @@ void DrawShadowMap(Light &light) {
     depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0 / (max - min),
                           -255.0 * min / (max - min));
     Mat blurredDepth;
-    GaussianBlur(depthBuffer, blurredDepth, Size(27, 27), 0, 0);
-    blurredDepth.convertTo(blurredDepth, CV_32F, (max - min) / 255.0,
-                           255.0 * min / (max - min));
-#pragma omp parallel for collapse(2)
+    GaussianBlur(depthBuffer, blurredDepth, Size(15, 15), 0, 0);
+    blurredDepth.convertTo(blurredDepth, CV_32F, (max - min) / 255.0, 255.0 * min / (max - min));
+    #pragma omp parallel for collapse(2)
     for (int x = 0; x < s->width; x++) {
       for (int y = 0; y < s->height; y++) {
         s->depthBuffer[y * s->width + x] = blurredDepth.at<float>(Point(x, y));
@@ -468,7 +467,7 @@ void DrawShadowMap(Light &light) {
 #endif
 
     memcpy(light.depthBuffer, s->depthBuffer,
-           LIGHTMAP_SIZE * LIGHTMAP_SIZE * sizeof(float));
+            LIGHTMAP_SIZE * LIGHTMAP_SIZE * sizeof(float));
   }
   light.needsUpdate = false;
 }
