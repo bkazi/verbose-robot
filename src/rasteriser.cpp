@@ -59,7 +59,7 @@ Light light;
 vec4 lightPos(0.55, -0.13, -9.13, 1);
 vec4 lightDir(-2.0, 7.2, 0.9, 0);
 vec3 lightPower = 0.5f * vec3(1, 1, 1);
-vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
+vec3 indirectLightPowerPerArea = 0.4f * vec3(1, 1, 1);
 
 int main(int argc, char *argv[]) {
   scene = new Scene();
