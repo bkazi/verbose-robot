@@ -3,21 +3,21 @@
 
 #include <glm/glm.hpp>
 
-#define LIGHTMAP_SIZE 256
+#define LIGHTMAP_SIZE 512
 
 struct Light {
   glm::vec4 position;
+  glm::vec4 direction;
   glm::vec3 power;
-  float *depthBuffer[6];
+  float depthBuffer[LIGHTMAP_SIZE * LIGHTMAP_SIZE];
   bool needsUpdate;
-  glm::vec3 rot[6] = {glm::vec3(0, -M_PI / 2, 0), glm::vec3(0, M_PI / 2, 0),
-                      glm::vec3(-M_PI / 2, 0, 0), glm::vec3(M_PI / 2, 0, 0),
-                      glm::vec3(0, 0, 0),         glm::vec3(0, M_PI, 0)};
 
-  Light();
-  int getCubeIndex(glm::vec4 pos);
-  void transformationMatrix(glm::mat4 &transMat, glm::vec3 r);
+  void transformationMatrix(glm::mat4 &transMat);
   int test(glm::vec4 vertexWorldPos);
+  bool update(float dt);
+
+ private:
+  float movementSpeed = 0.001;
 };
 
 #endif

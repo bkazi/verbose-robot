@@ -1,11 +1,11 @@
+#include <SDL.h>
 #include <assert.h>
 #include <stdint.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <opencv/cv.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <SDL.h>
 
 #include "camera.h"
 #include "light.h"
@@ -23,12 +23,13 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 256
+#define SCREEN_WIDTH 512
+#define SCREEN_HEIGHT 512
 #define FULLSCREEN_MODE false
 #define NEAR_PLANE 0.1
 #define FAR_PLANE 5
 #define ENABLE_FXAA
+#define SMOOTH_SHADOWS
 
 /* ----------------------------------------------------------------------------*/
 /* FUNCTIONS */
@@ -55,26 +56,19 @@ void FXAA(screen *s);
 Scene *scene;
 Light light;
 
-vec4 lightPos(0, 0.5, 0, 1);
-vec3 lightPower = 14.f * vec3(1, 1, 1);
-vec3 indirectLightPowerPerArea = 0.5f * vec3(1, 1, 1);
+vec4 lightPos(0.55, -0.13, -9.13, 1);
+vec4 lightDir(-2.0, 7.2, 0.9, 0);
+vec3 lightPower = 0.5f * vec3(1, 1, 1);
+vec3 indirectLightPowerPerArea = 0.4f * vec3(1, 1, 1);
 
 int main(int argc, char *argv[]) {
   scene = new Scene();
 
-  // Camera camera = {
-  //     SCREEN_HEIGHT,
-  //     // lightPos,
-  //     // light.rot[0],
-  //     vec4(0, 0, -3.001, 1),
-  //     vec3(0, 0, 0),
-  //     0.001,
-  //     0.001,
-  // };
-  Camera *camera = new Camera(vec4(0, 0, -1.5001, 1), vec3(0, 0, 0),
+  Camera *camera = new Camera(vec4(0.5, 0, -7.7, 1), vec3(-2.5, 0, 0),
                               SCREEN_HEIGHT, 0.001, 0.001);
 
   light.position = lightPos;
+  light.direction = lightDir;
   light.power = lightPower;
   light.needsUpdate = true;
 
@@ -89,16 +83,14 @@ int main(int argc, char *argv[]) {
   }
 
   while (NoQuitMessageSDL()) {
-    Update(camera);
     DrawShadowMap(light);
+    Update(camera);
     Draw(screen, camera);
-// for (int y = 0; y < LIGHTMAP_SIZE; y++) {
-//   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
-//     PutPixelSDL(screen, false, x, y, vec3(light.depthBuffer[2][y *
-//     LIGHTMAP_SIZE
-//     + x]), 100.f);
-//   }
-// }
+    // for (int y = 0; y < LIGHTMAP_SIZE; y++) {
+    //   for (int x = 0; x < LIGHTMAP_SIZE; x++) {
+    //     PutPixelSDL(screen, x, y, vec3(light.depthBuffer[y * LIGHTMAP_SIZE + x]), 100.f);
+    //   }
+    // }
 #ifdef ENABLE_FXAA
     FXAA(screen);
 #endif
@@ -139,6 +131,7 @@ void Update(Camera *camera) {
   cout << "Render time: " << dt << " ms." << endl;
   /* Update variables*/
 
+  light.update(dt);
   camera->update(dt);
 }
 
@@ -152,6 +145,14 @@ void VertexShader(const Vertex &v, Pixel &p, mat4 transMat, mat4 projMat) {
   p.reflectance = v.color;
 }
 
+void createCoordinateSystem(const vec3 &N, vec3 &Nt, vec3 &Nb) {
+  if (fabs(N.x) > fabs(N.y))
+    Nt = glm::normalize(vec3(N.z, 0, -N.x));
+  else
+    Nt = glm::normalize(vec3(0, -N.z, N.y));
+  Nb = glm::cross(N, Nt);
+}
+
 void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
                  Camera *camera) {
   vec3 color;
@@ -161,15 +162,22 @@ void PixelShader(screen *screen, const Pixel &p, const Primitive *primitive,
     color = p.reflectance;
   }
 
+  vec4 normal;
+  if (primitive->material.bumpTexture != NULL) {
+    vec3 Nt, Nb;
+    vec3 sample =
+        (2.f * primitive->material.diffuseTexture->sample(p.uv)) - 1.f;
+    createCoordinateSystem(vec3(p.normal), Nt, Nb);
+    normal = vec4(mat3(Nb, vec3(p.normal), Nt) * sample, 0.f);
+  } else {
+    normal = p.normal;
+  }
+
   vec3 D;
   if (light.test(p.worldPos)) {
     mat4 transMat = camera->getTransformationMatrix();
-    // TransformationMatrix(camera->rotation, camera->position, transMat);
-    vec4 r = transMat * (light.position - p.worldPos);
-    float rLen = glm::length(r);
-    vec4 rNorm = r / rLen;
-    D = light.power * max(glm::dot(rNorm, p.normal), 0.f) /
-        float(4 * M_PI * powf(rLen, 2.f));
+    vec4 dir = glm::normalize(transMat * light.direction);
+    D = light.power * max(glm::dot(dir, normal), 0.f);
   } else {
     D = vec3(0.f);
   }
@@ -205,9 +213,9 @@ void InterpolateBarycentric(vector<Pixel> vertexPixels, float w[3], Pixel &p) {
                      p.zinv);
 
   p.uv = (w[0] * vertexPixels[0].uv * vertexPixels[0].zinv +
-                         w[1] * vertexPixels[1].uv * vertexPixels[1].zinv +
-                         w[2] * vertexPixels[2].uv * vertexPixels[2].zinv) /
-                        p.zinv;
+          w[1] * vertexPixels[1].uv * vertexPixels[1].zinv +
+          w[2] * vertexPixels[2].uv * vertexPixels[2].zinv) /
+         p.zinv;
 }
 
 Pixel ClipEdge(Pixel i, Pixel j, vector<Pixel> vertexPixels, float a) {
@@ -437,15 +445,29 @@ void DrawShadowMap(Light &light) {
   if (light.needsUpdate == true) {
     screen *s = createScreen("rasteriser", LIGHTMAP_SIZE, LIGHTMAP_SIZE);
 
-    for (int idx = 0; idx < 6; idx++) {
-      Camera *camera =
-          new Camera(lightPos, light.rot[idx], LIGHTMAP_SIZE, 0, 0);
+    Camera *camera =
+        new Camera(light.position, vec3(light.direction), LIGHTMAP_SIZE, 0, 0);
 
-      Draw(s, camera);
-
-      memcpy(light.depthBuffer[idx], s->depthBuffer,
-             LIGHTMAP_SIZE * LIGHTMAP_SIZE * sizeof(float));
+    Draw(s, camera);
+#ifdef SMOOTH_SHADOWS
+    Mat depthBuffer = cvUnpackDepthBuffer(s);
+    double min, max;
+    minMaxLoc(depthBuffer, &min, &max);
+    depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0 / (max - min),
+                          -255.0 * min / (max - min));
+    Mat blurredDepth;
+    GaussianBlur(depthBuffer, blurredDepth, Size(15, 15), 0, 0);
+    blurredDepth.convertTo(blurredDepth, CV_32F, (max - min) / 255.0, 255.0 * min / (max - min));
+    #pragma omp parallel for collapse(2)
+    for (int x = 0; x < s->width; x++) {
+      for (int y = 0; y < s->height; y++) {
+        s->depthBuffer[y * s->width + x] = blurredDepth.at<float>(Point(x, y));
+      }
     }
+#endif
+
+    memcpy(light.depthBuffer, s->depthBuffer,
+            LIGHTMAP_SIZE * LIGHTMAP_SIZE * sizeof(float));
   }
   light.needsUpdate = false;
 }
@@ -458,9 +480,10 @@ void FXAA(screen *s) {
   minMaxLoc(depthBuffer, &min, &max);
   depthBuffer.convertTo(depthBuffer, CV_8UC3, 255.0 / (max - min),
                         -255.0 * min / (max - min));
-  Mat blurredImage;
+  Mat blurredImage, blurredMask;
 
   GaussianBlur(frameBuffer, blurredImage, Size(3, 3), 0, 0);
-  maskImage(frameBuffer, blurredImage, depthBuffer, frameBuffer);
+  GaussianBlur(depthBuffer, blurredMask, Size(3, 3), 0, 0);
+  maskImage(frameBuffer, blurredImage, blurredMask, frameBuffer);
   cvPackToScreen(s, frameBuffer);
 }
