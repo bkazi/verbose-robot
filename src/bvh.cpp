@@ -314,7 +314,7 @@ bool BVH::intersect(Ray ray, Intersection& intersection) const {
     if (node->isLeaf) {
       for (const auto& extent : node->nodeExtentsList) {
         Intersection i;
-        if (e->object->intersect(ray, i)) {
+        if (extent->object->intersect(ray, i)) {
           if (i.distance < minDist) {
             minDist = i.distance;
             intersection = i;
