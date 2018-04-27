@@ -21,7 +21,7 @@ BINARY_RAYTRACER = $(BINDIR)/raytracer
 BINARY_RASTERISER = $(BINDIR)/rasteriser
 
 # Compilation options
-CXX = icpc
+CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Ofast -march=native -fopenmp -ggdb -g3 -D unix -D GLM_FORCE_SSE2 -D GLM_FORCE_ALIGNED -D textureLess $(addprefix -I, $(HDIR)) $(shell sdl2-config --cflags) $(DEPFLAGS)
 COMPILE = $(CXX) -o $@ -c $< $(CXXFLAGS)
 
