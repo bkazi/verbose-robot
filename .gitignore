@@ -5,3 +5,9 @@ dependencies/
 screenshot.png
 .idea
 cmake-build-debug/
+screen
+rayScreen
+wow
+*.gif
+*.mp4
+.DS_Store
