@@ -143,7 +143,8 @@ Mat cvUnpackToMat(screen* s) {
 #pragma omp parallel for collapse(2)
   for (uint32_t y = 0; y < s->height; ++y) {
     for (uint32_t x = 0; x < s->width; ++x) {
-      vec3 pixel = s->pixels[y * s->width + x];
+      vec3 pixel = s->pixels[y * s->width + x] /
+                        (float)(s->samples > 0 ? s->samples : 1.f);
 
       Vec3b color = mat.at<Vec3b>(Point(x, y));
       color[0] = clamp(pixel.b * 255.f, 0.f, 255.f);
